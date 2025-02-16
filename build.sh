@@ -62,6 +62,12 @@ mkdir -p "$_src_dir/out/Default"
 # Set build flags
 cat "$_main_repo/flags.gn" "$_root_dir/flags.macos.gn" > "$_src_dir/out/Default/args.gn"
 
+if command -v ccache 2>&1 >/dev/null; then
+  echo 'cc_wrapper="env CCACHE_SLOPPINESS=time_macros ccache"' >> "$_src_dir/out/Default/args.gn";
+else
+  echo 'warn: ccache is not available' >&2
+fi
+
 # Set target_cpu to the corresponding architecture
 if [[ $_arch == "arm64" ]]; then
   echo 'target_cpu = "arm64"' >> "$_src_dir/out/Default/args.gn"
