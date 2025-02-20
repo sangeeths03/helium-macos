@@ -29,7 +29,7 @@ export CPPFLAGS="-I$_homebrew_path/llvm/include"
 _root_dir=$(dirname $(greadlink -f $0))
 _download_cache="$_root_dir/build/download_cache"
 _src_dir="$_root_dir/build/src"
-_main_repo="$_root_dir/ungoogled-chromium"
+_main_repo="$_root_dir/helium-chromium"
 
 # Clone to get the Chromium Source
 clone=true
