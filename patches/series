@@ -12,3 +12,6 @@ ungoogled-chromium/macos/no-unknown-warnings.patch
 ungoogled-chromium/macos/mark-remap_alloc-used.patch
 ungoogled-chromium/macos/re2-include-fix
 ungoogled-chromium/macos/build-bindgen-target-override.patch
+
+patches/extra/helium/change-keychain-name.patch
+patches/extra/helium/change-product-dir-name.patch
