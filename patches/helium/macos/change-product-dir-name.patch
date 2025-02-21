@@ -1,6 +1,6 @@
 --- a/chrome/common/chrome_paths_mac.mm
 +++ b/chrome/common/chrome_paths_mac.mm
-@@ -55,13 +55,7 @@
+@@ -55,13 +55,7 @@ char* ProductDirNameForBundle(NSBundle*
      product_dir_name = [product_dir_name_ns fileSystemRepresentation];
  
      if (!product_dir_name) {
