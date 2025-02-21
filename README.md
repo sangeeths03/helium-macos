@@ -42,10 +42,8 @@ If you want to notarize the build, you need to have an Apple Developer ID and a 
 If you don't have an Apple Developer ID to sign the build (or you don't want to sign it), you can simply not specify MACOS_CERTIFICATE_NAME.
 
 ```sh
-git clone --recurse-submodules https://github.com/ungoogled-software/ungoogled-chromium-macos.git
-cd ungoogled-chromium-macos
-# Replace TAG_OR_BRANCH_HERE with a tag or branch name
-git checkout --recurse-submodules TAG_OR_BRANCH_HERE
+git clone --recurse-submodules https://github.com/imputnet/helium-macos.git
+cd helium-macos
 ```
 
 to switch to the desired release or development branch.
@@ -119,13 +117,13 @@ Once it's complete, a `.dmg` should appear in `build/`.
         * When removing large chunks of code, remove each line instead of using language features to hide or remove the code. This makes the patches less susceptible to breakages when using quilt's refresh command (e.g. quilt refresh updates the line numbers based on the patch context, so it's possible for new but desirable code in the middle of the block comment to be excluded.). It also helps with readability when someone wants to see the changes made based on the patch alone.
     3. Refresh the patch: `quilt refresh`
     4. Go back to Step 5.
-7. Run `../../ungoogled-chromium/devutils/validate_config.py`
+7. Run `../../helium-chromium/devutils/validate_config.py`
 8. Run `quilt pop -a`
 9. Validate that patches are applied correctly
 
     ```sh
     cd ../..
-    ./ungoogled-chromium/devutils/validate_patches.py -l build/src -s patches/series.merged
+    ./helium-chromium/devutils/validate_patches.py -l build/src -s patches/series.merged
     ```
 
 10. Remove all patches introduced by ungoogled-chromium: `./devutils/update_patches.sh unmerge`
