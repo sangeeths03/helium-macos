@@ -21,6 +21,8 @@ ___helium_setup_gn() {
     fi
 
     echo 'target_cpu = "'"$TARGET_CPU"'"' >> "$OUT_FILE"
+    echo 'use_thin_lto = false' >> "$OUT_FILE"
+
     sed -i '' s/is_official_build/is_component_build/ "$OUT_FILE"
 }
 
