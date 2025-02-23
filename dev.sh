@@ -26,7 +26,7 @@ ___helium_setup_gn() {
     sed -i '' s/is_official_build/is_component_build/ "$OUT_FILE"
 }
 
-___helium_pull() {
+___helium_info_pull() {
     "$_root_dir/retrieve_and_unpack_resource.sh" -g
 
     mkdir -p "$_src_dir/out/Default"
@@ -35,7 +35,7 @@ ___helium_pull() {
      && git config core.fsmonitor true
 }
 
-___helium_pull_thirdparty() {
+___helium_info_pull_thirdparty() {
     mkdir -p "$_src_dir/third_party/llvm-build/Release+Asserts"
     mkdir -p "$_src_dir/third_party/rust-toolchain/bin"
     ln -s "$_src_dir/third_party" "$_root_dir/build/third_party"
@@ -58,10 +58,10 @@ ___helium_setup() {
 
     rm -rf "$_src_dir" && mkdir -p "$_download_cache" "$_src_dir"
 
-    ___helium_pull
+    ___helium_info_pull
     python3 "$_main_repo/utils/prune_binaries.py" "$_src_dir" "$_main_repo/pruning.list"
     ___helium_setup_gn
-    ___helium_pull_thirdparty
+    ___helium_info_pull_thirdparty
 
     "$_root_dir/devutils/update_patches.sh" merge
     cd "$_src_dir"
@@ -105,7 +105,7 @@ __helium_menu() {
         p|pull) ___helium_pull;;
         reset) ___helium_reset;;
         *)
-            echo "usage: $0 (setup | build | pack | reset)" >&2
+            echo "usage: he (setup | build | pack | reset)" >&2
             echo "\tsetup - sets up the dev environment for the first itme" >&2
             echo "\tbuild - prepares a development build binary" >&2
             echo "\tpull - undoes all patches, pulls, redoes all patches" >&2
@@ -114,12 +114,15 @@ __helium_menu() {
 }
 
 he() {
-    (__helium_menu)
+    (__helium_menu "$@")
 }
 
 if ! (return 0 2>/dev/null); then
     printf "usage:\n\t$ source dev.sh\n\t$ he\n" 2>&1
     exit 1
 else
-    PS1="🎈 $PS1"
+    if [ "$__helium_loaded" = "" ]; then
+        __helium_loaded=1
+        PS1="🎈 $PS1"
+    fi
 fi
