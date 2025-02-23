@@ -83,14 +83,15 @@ ___helium_build() {
 }
 
 ___helium_pull() {
-    cd "$_src_dir" && quilt pop -a
+    cd "$_src_dir" && quilt pop -a || true
     "$_root_dir/devutils/update_patches.sh" unmerge || true
 
     for dir in "$_root_dir" "$_main_repo"; do
         git -C "$dir" stash \
         && git -C "$dir" fetch \
         && git -C "$dir" rebase origin/main \
-        && git -C "$dir" stash pop
+        && git -C "$dir" stash pop \
+        || true
     done
 
     "$_root_dir/devutils/update_patches.sh" merge
