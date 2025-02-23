@@ -1,0 +1,11 @@
+--- a/media/midi/BUILD.gn
++++ b/media/midi/BUILD.gn
+@@ -138,6 +138,8 @@ component("midi") {
+       "CoreFoundation.framework",
+       "CoreMIDI.framework",
+     ]
++
++    deps += ["//build/rust:cxx_cppdeps"]
+   }
+ 
+   if (is_win) {
