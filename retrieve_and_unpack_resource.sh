@@ -45,7 +45,9 @@ while getopts 'dgp' OPTION; do
 
         # Retrieve and unpack general resources
         /usr/bin/arch -$_target_cpu $_python_path/python3 "$_main_repo/utils/downloads.py" retrieve -i "$_root_dir/downloads.ini" -c "$_download_cache"
+        /usr/bin/arch -$_target_cpu $_python_path/python3 "$_main_repo/utils/downloads.py" retrieve -i "$_main_repo/extras.ini" -c "$_download_cache"
         /usr/bin/arch -$_target_cpu $_python_path/python3 "$_main_repo/utils/downloads.py" unpack -i "$_root_dir/downloads.ini" -c "$_download_cache" "$_src_dir"
+        /usr/bin/arch -$_target_cpu $_python_path/python3 "$_main_repo/utils/downloads.py" unpack -i "$_main_repo/extras.ini" -c "$_download_cache" "$_src_dir"
         ;;
     p)
         rm -rf "$_src_dir/third_party/llvm-build/Release+Asserts/"
