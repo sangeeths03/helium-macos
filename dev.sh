@@ -80,7 +80,7 @@ ___helium_reset() {
     ) &
 }
 
-__helium_substitution() {
+___helium_substitution() {
     if [ "$1" = "unsub" ]; then
         python3 "$_main_repo/utils/domain_substitution.py" revert \
             -c "$_subs_cache" "$_src_dir"
@@ -128,7 +128,7 @@ __helium_menu() {
         setup) ___helium_setup;;
         build) ___helium_build;;
         pull) ___helium_pull;;
-        sub|unsub) __helium_substitution "$1";;
+        sub|unsub) ___helium_substitution "$1";;
         reset) ___helium_reset;;
         *)
             echo "usage: he (setup | build | sub | unsub | reset)" >&2
