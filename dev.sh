@@ -72,10 +72,34 @@ ___helium_setup() {
 
 ___helium_reset() {
     "$_root_dir/devutils/update_patches.sh" unmerge || true
+    rm "$_subs_cache" || true
+
     (
         mv "$_src_dir" "${_src_dir}x" && \
         rm -rf "${_src_dir}x"
     ) &
+}
+
+__helium_substitution() {
+    if [ "$1" = "unsub" ]; then
+        python3 "$_main_repo/utils/domain_substitution.py" revert \
+            -c "$_subs_cache" "$_src_dir"
+    elif [ "$1" = "sub" ]; then
+        if [ -f "$_subs_cache" ]; then
+            echo "$_subs_cache exists, are you sure you want to do this?" >&2
+            echo "if yes, then delete the $_subs_cache file" >&2
+            return
+        fi
+
+        python3 "$_main_repo/utils/domain_substitution.py" apply \
+            -r "$_main_repo/domain_regex.list" \
+            -f "$_main_repo/domain_substitution.list" \
+            -c "$_subs_cache" \
+            "$_src_dir"
+    else
+        echo "unknown action: $1" >&2
+        return
+    fi
 }
 
 ___helium_build() {
@@ -101,14 +125,16 @@ ___helium_pull() {
 __helium_menu() {
     set -e
     case $1 in
-        s|setup) ___helium_setup;;
-        b|build) ___helium_build;;
-        p|pull) ___helium_pull;;
+        setup) ___helium_setup;;
+        build) ___helium_build;;
+        pull) ___helium_pull;;
+        sub|unsub) __helium_substitution "$1";;
         reset) ___helium_reset;;
         *)
-            echo "usage: he (setup | build | pack | reset)" >&2
+            echo "usage: he (setup | build | sub | unsub | reset)" >&2
             echo "\tsetup - sets up the dev environment for the first itme" >&2
             echo "\tbuild - prepares a development build binary" >&2
+            echo "\t(un)sub - apply (undo) domain substitutions" >&2
             echo "\tpull - undoes all patches, pulls, redoes all patches" >&2
             echo "\treset - nukes everything" >&2
     esac

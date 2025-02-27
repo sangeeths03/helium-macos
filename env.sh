@@ -27,3 +27,4 @@ _root_dir=$(dirname $(greadlink -f $0))
 _download_cache="$_root_dir/build/download_cache"
 _src_dir="$_root_dir/build/src"
 _main_repo="$_root_dir/helium-chromium"
+_subs_cache="$_root_dir/build/subs.tar"
