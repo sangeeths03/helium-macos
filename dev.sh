@@ -107,6 +107,11 @@ ___helium_build() {
 }
 
 ___helium_pull() {
+    if [ -f "$_subs_cache" ]; then
+        echo "source files are substituted, please run 'he unsub' first" >&2
+        return 1
+    fi
+
     cd "$_src_dir" && quilt pop -a || true
     "$_root_dir/devutils/update_patches.sh" unmerge || true
 
