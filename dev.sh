@@ -133,6 +133,22 @@ ___helium_pull() {
     cd "$_src_dir" && quilt push -a --refresh
 }
 
+___helium_patches_merge() {
+    "$_root_dir/devutils/update_patches.sh" merge
+}
+
+___helium_patches_unmerge() {
+    "$_root_dir/devutils/update_patches.sh" unmerge
+}
+
+___helium_quilt_push() {
+    cd "$_src_dir" && quilt push -a --refresh
+}
+
+___helium_quilt_pop() {
+    cd "$_src_dir" && quilt pop -a
+}
+
 __helium_menu() {
     set -e
     case $1 in
@@ -141,13 +157,22 @@ __helium_menu() {
         run) ___helium_run;;
         pull) ___helium_pull;;
         sub|unsub) ___helium_substitution "$1";;
+        merge) ___helium_patches_merge;;
+        unmerge) ___helium_patches_unmerge;;
+        push) ___helium_quilt_push;;
+        pop) ___helium_quilt_pop;;
         reset) ___helium_reset;;
         *)
-            echo "usage: he (setup | build | run | sub | unsub | reset)" >&2
+            echo "usage: he (setup | build | run | sub | unsub | merge | unmerge | push | pop | pull | reset)" >&2
             echo "\tsetup - sets up the dev environment for the first itme" >&2
             echo "\tbuild - prepares a development build binary" >&2
             echo "\trun - runs a development build of helium with dev data dir & ui devtools enabled" >&2
-            echo "\t(un)sub - apply (undo) domain substitutions" >&2
+            echo "\tsub - apply google domain substitutions" >&2
+            echo "\tunsub - undo google domain substitutions" >&2
+            echo "\tmerge - merges all patches" >&2
+            echo "\tunmerge - unmerges all patches" >&2
+            echo "\tpush - applies all patches" >&2
+            echo "\tpop - undoes all patches" >&2
             echo "\tpull - undoes all patches, pulls, redoes all patches" >&2
             echo "\treset - nukes everything" >&2
     esac
