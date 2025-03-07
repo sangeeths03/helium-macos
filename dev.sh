@@ -106,6 +106,12 @@ ___helium_build() {
     cd "$_src_dir" && ninja -C out/Default chrome chromedriver
 }
 
+___helium_run() {
+    cd "$_src_dir" && ./out/Default/Helium.app/Contents/MacOS/Helium \
+    --user-data-dir="$HOME/Library/Application Support/net.imput.helium.dev" \
+    --enable-ui-devtools
+}
+
 ___helium_pull() {
     if [ -f "$_subs_cache" ]; then
         echo "source files are substituted, please run 'he unsub' first" >&2
@@ -132,13 +138,15 @@ __helium_menu() {
     case $1 in
         setup) ___helium_setup;;
         build) ___helium_build;;
+        run) ___helium_run;;
         pull) ___helium_pull;;
         sub|unsub) ___helium_substitution "$1";;
         reset) ___helium_reset;;
         *)
-            echo "usage: he (setup | build | sub | unsub | reset)" >&2
+            echo "usage: he (setup | build | run | sub | unsub | reset)" >&2
             echo "\tsetup - sets up the dev environment for the first itme" >&2
             echo "\tbuild - prepares a development build binary" >&2
+            echo "\trun - runs a development build of helium with dev data dir & ui devtools enabled" >&2
             echo "\t(un)sub - apply (undo) domain substitutions" >&2
             echo "\tpull - undoes all patches, pulls, redoes all patches" >&2
             echo "\treset - nukes everything" >&2
