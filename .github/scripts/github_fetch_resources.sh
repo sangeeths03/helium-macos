@@ -1,13 +1,13 @@
 #!/bin/bash -eux
 
-# Simple script for downloading and unpacking required resources to build Ungoogled-Chromium macOS binaries on GitHub Actions
+# Simple script for downloading and unpacking required resources to build Helium macOS binaries on GitHub Actions
 
 _target_cpu="$1"
 
 _root_dir=$(dirname $(greadlink -f $0))
 _download_cache="$_root_dir/build/download_cache"
 _src_dir="$_root_dir/build/src"
-_main_repo="$_root_dir/ungoogled-chromium"
+_main_repo="$_root_dir/helium-chromium"
 
 mkdir -p "$_src_dir"
 sudo df -h

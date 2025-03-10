@@ -1,10 +1,10 @@
-name: Build macOS binaries of Ungoogled Chromium
+name: Build macOS binaries of Helium
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build macOS binaries of Ungoogled Chromium
+    name: Build macOS binaries of Helium
     strategy:
       matrix:
         arch: [arm64, x86_64]
@@ -19,7 +19,7 @@ jobs:
   release:
     needs: build
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-    name: Release macOS binaries of Ungoogled Chromium
+    name: Release macOS binaries of Helium
     runs-on: macos-latest
     steps:
       - name: Clone repository
@@ -47,7 +47,7 @@ jobs:
         run: ls -la
       - name: Generate release note
         run: ./github_generate_release_note.sh | tee -a github_actions_release.log
-      - name: Release Ungoogled-Chromium binaries
+      - name: Release Helium binaries
         uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
         with:
           body_path: ./github_release_note.md

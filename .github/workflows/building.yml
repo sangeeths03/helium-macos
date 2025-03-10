@@ -1,4 +1,4 @@
-name: Building macOS binaries of Ungoogled Chromium
+name: Building macOS binaries of Helium
 
 defaults:
   run:
@@ -55,11 +55,11 @@ jobs:
       - name: Upload resources
         uses: actions/upload-artifact@v4
         with:
-          name: ungoogled_chromium_macos_resources_${{ inputs.arch }}
+          name: helium_macos_resources_${{ inputs.arch }}
           path: upload_build_resources/
 
   build_job_01:
-    name: Start Building Ungoogled-Chromium for macOS
+    name: Start Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: retrieve-resources
     outputs:
@@ -88,7 +88,7 @@ jobs:
       - name: Download resources
         uses: actions/download-artifact@v4
         with:
-          name: ungoogled_chromium_macos_resources_${{ inputs.arch }}
+          name: helium_macos_resources_${{ inputs.arch }}
       - name: Unpack resources
         run: ./github_unpack_resources.sh
       - name: List resources
@@ -123,7 +123,7 @@ jobs:
             ./${{ steps.bake.outputs.file_name }}.hashes.md
 
   build_job_02:
-    name: Resuming Building Ungoogled-Chromium for macOS
+    name: Resuming Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: build_job_01
     if: ${{needs.build_job_01.outputs.status == 'running'}}
@@ -188,7 +188,7 @@ jobs:
             ./${{ steps.bake.outputs.file_name }}.hashes.md
 
   build_job_03:
-    name: Further Resuming Building Ungoogled-Chromium for macOS
+    name: Further Resuming Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: build_job_02
     if: ${{needs.build_job_02.outputs.status == 'running'}}
@@ -253,7 +253,7 @@ jobs:
             ./${{ steps.bake.outputs.file_name }}.hashes.md
 
   build_job_04:
-    name: Further Resuming Building Ungoogled-Chromium for macOS
+    name: Further Resuming Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: build_job_03
     if: ${{needs.build_job_03.outputs.status == 'running'}}
@@ -318,7 +318,7 @@ jobs:
             ./${{ steps.bake.outputs.file_name }}.hashes.md
 
   build_job_05:
-    name: Further Resuming Building Ungoogled-Chromium for macOS
+    name: Further Resuming Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: build_job_04
     if: ${{needs.build_job_04.outputs.status == 'running'}}
@@ -383,7 +383,7 @@ jobs:
             ./${{ steps.bake.outputs.file_name }}.hashes.md
 
   build_job_06:
-    name: Further Resuming Building Ungoogled-Chromium for macOS
+    name: Further Resuming Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: build_job_05
     if: ${{needs.build_job_05.outputs.status == 'running'}}
@@ -448,7 +448,7 @@ jobs:
             ./${{ steps.bake.outputs.file_name }}.hashes.md
 
   build_job_07:
-    name: Further Resuming Building Ungoogled-Chromium for macOS
+    name: Further Resuming Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: build_job_06
     if: ${{needs.build_job_06.outputs.status == 'running'}}
@@ -513,7 +513,7 @@ jobs:
             ./${{ steps.bake.outputs.file_name }}.hashes.md
 
   build_job_08:
-    name: Further Resuming Building Ungoogled-Chromium for macOS
+    name: Further Resuming Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: build_job_07
     if: ${{needs.build_job_07.outputs.status == 'running'}}
@@ -578,7 +578,7 @@ jobs:
             ./${{ steps.bake.outputs.file_name }}.hashes.md
 
   build_job_09:
-    name: Further Resuming Building Ungoogled-Chromium for macOS
+    name: Further Resuming Building Helium for macOS
     runs-on: ${{ inputs.os }}
     needs: build_job_08
     if: ${{needs.build_job_08.outputs.status == 'running'}}

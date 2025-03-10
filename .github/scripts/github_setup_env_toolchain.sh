@@ -1,6 +1,6 @@
 #!/bin/bash -eux
 
-# Simple script for setting up all toolchain dependencies for building Ungoogled-Chromium on macOS
+# Simple script for setting up all toolchain dependencies for building Helium on macOS
 
 brew install ninja coreutils --overwrite
 

@@ -1,6 +1,6 @@
 #!/bin/bash -eux
 
-# Simple partitioned (2 of 3) build script for building Ungoogled-Chromium macOS binaries on GitHub Actions
+# Simple partitioned (2 of 3) build script for building Helium macOS binaries on GitHub Actions
 # Resuming build script for macOS
 
 _target_cpu="${1:-x86_64}"
