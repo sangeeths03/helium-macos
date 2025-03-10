@@ -1,17 +1,6 @@
 name: Build macOS binaries of Ungoogled Chromium
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'patches/**'
-      - 'downloads**.ini'
-      - 'revision.txt'
-      - 'flags.macos.gn'
-      - '!build.sh'
-      - '!README.md'
-      - '!LICENSE'
-      - '!devutils/**'
-      - '.github/scripts/force_build.txt'
 
 jobs:
   build:
