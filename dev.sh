@@ -27,7 +27,7 @@ ___helium_setup_gn() {
 }
 
 ___helium_info_pull() {
-    "$_root_dir/retrieve_and_unpack_resource.sh" -g
+    "$_root_dir/retrieve_and_unpack_resource.sh" -d -g
 
     mkdir -p "$_src_dir/out/Default"
     cd "$_src_dir" \
