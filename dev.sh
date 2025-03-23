@@ -50,6 +50,10 @@ ___helium_configure() {
     ./out/Default/gn gen out/Default --fail-on-unused-args
 }
 
+___helium_resources() {
+    python3 "$_main_repo/utils/replace_resources.py" "$_main_repo/helium_resources.txt" "$_main_repo/resources" "$_src_dir"
+}
+
 ___helium_setup() {
     if [ -d "$_src_dir/out" ]; then
         echo "$_src_dir/out already exists" >&2
@@ -60,6 +64,7 @@ ___helium_setup() {
 
     ___helium_info_pull
     python3 "$_main_repo/utils/prune_binaries.py" "$_src_dir" "$_main_repo/pruning.list"
+    ___helium_resources
     ___helium_setup_gn
     ___helium_info_pull_thirdparty
 
@@ -161,6 +166,7 @@ __helium_menu() {
         unmerge) ___helium_patches_unmerge;;
         push) ___helium_quilt_push;;
         pop) ___helium_quilt_pop;;
+        resources) ___helium_resources;;
         reset) ___helium_reset;;
         *)
             echo "usage: he (setup | build | run | sub | unsub | merge | unmerge | push | pop | pull | reset)" >&2
@@ -173,6 +179,7 @@ __helium_menu() {
             echo "\tunmerge - unmerges all patches" >&2
             echo "\tpush - applies all patches" >&2
             echo "\tpop - undoes all patches" >&2
+            echo "\tresources - copies helium resources (such as icons)" >&2
             echo "\tpull - undoes all patches, pulls, redoes all patches" >&2
             echo "\treset - nukes everything" >&2
     esac
