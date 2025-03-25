@@ -20,6 +20,7 @@ fi
 
 cp "$_main_repo/flags.gn" "$_src_dir/out/Default/args.gn"
 cat "$_root_dir/flags.macos.gn" >> "$_src_dir/out/Default/args.gn"
+echo 'cc_wrapper="env CCACHE_SLOPPINESS=time_macros ccache"' >> "$_src_dir/out/Default/args.gn"
 
 cd "$_src_dir"
 
