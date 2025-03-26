@@ -13,6 +13,9 @@ on:
       os:
         required: true
         type: string
+    outputs:
+      status:
+        value: ${{ jobs.build_job.outputs.status }}
 
 jobs:
   build_job:
