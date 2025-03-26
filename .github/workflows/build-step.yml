@@ -40,6 +40,7 @@ jobs:
       - name: Unpack archive of build
         run: ./github_unpack_archive.sh
       - uses: ./.github/actions/do-build
+        id: build
         with:
           arch: ${{ inputs.arch }}
           os: ${{ inputs.os }}
