@@ -27,10 +27,14 @@ runs:
   using: composite
   steps:
     - name: Attempt to restore ccache
+      id: cacheload
       uses: actions/cache/restore@v4
       with:
         path: /Users/runner/Library/Caches/ccache
-        key: ccache-main-${{ runner.arch }}
+        key: ccache-${{ inputs.arch }}-${{ github.run_id }}
+        restore_keys:
+          - ccache-${{ inputs.arch }}-
+
     - name: Show ccache stats before build
       run: |
         mkdir -p /Users/runner/Library/Caches/ccache \
@@ -50,7 +54,7 @@ runs:
       uses: actions/cache/save@v4
       with:
         path: /Users/runner/Library/Caches/ccache
-        key: ccache-main-${{ runner.arch }}
+        key: ${{ steps.cacheload.outputs.cache-primary-key }}
 
     - name: Prepare archive of build as artifact
       id: bake
