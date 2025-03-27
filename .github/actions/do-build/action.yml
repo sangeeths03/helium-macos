@@ -31,7 +31,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: /Users/runner/Library/Caches/ccache
-        key: ccache-${{ inputs.arch }}-${{ github.run_id }}-${{ github.run_number }}
+        key: ccache-${{ inputs.arch }}-${{ github.run_id }}-${{ github.job }}
         restore-keys: |
           ccache-${{ inputs.arch }}-
 
