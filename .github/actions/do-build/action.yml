@@ -26,12 +26,16 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: generate timestamp
+      run: echo TS=$(date +%s) >> $GITHUB_ENV
+      shell: bash
+
     - name: Attempt to restore ccache
       id: cacheload
       uses: actions/cache/restore@v4
       with:
         path: /Users/runner/Library/Caches/ccache
-        key: ccache-${{ inputs.arch }}-${{ github.run_id }}-${{ github.job }}
+        key: ccache-${{ inputs.arch }}-${{ github.run_id }}-${{ env.TS }}
         restore-keys: |
           ccache-${{ inputs.arch }}-
 
