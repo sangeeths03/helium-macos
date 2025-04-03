@@ -1,11 +1,11 @@
 --- a/media/midi/BUILD.gn
 +++ b/media/midi/BUILD.gn
-@@ -138,6 +138,8 @@ component("midi") {
-       "CoreFoundation.framework",
-       "CoreMIDI.framework",
+@@ -129,6 +129,8 @@ component("midi") {
+       ":midi_jni_headers",
+       "//base:i18n",
      ]
 +
 +    deps += ["//build/rust:cxx_cppdeps"]
    }
  
-   if (is_win) {
+   if (is_apple) {
