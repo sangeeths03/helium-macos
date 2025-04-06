@@ -43,7 +43,7 @@
        "//components/translate/content/browser",
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -573,17 +573,8 @@ static_library("ui") {
+@@ -577,17 +577,8 @@ static_library("ui") {
      "//components/reading_list/features:flags",
      "//components/renderer_context_menu",
      "//components/resources",
@@ -61,7 +61,7 @@
      "//components/schema_org/common:improved_mojom",
      "//components/search",
      "//components/search_engines",
-@@ -5692,7 +5683,6 @@ static_library("ui_public_dependencies")
+@@ -5696,7 +5687,6 @@ static_library("ui_public_dependencies")
      "//components/dom_distiller/core",
      "//components/enterprise/buildflags",
      "//components/paint_preview/buildflags",
