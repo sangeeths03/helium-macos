@@ -80,6 +80,7 @@ ___helium_setup() {
 ___helium_reset() {
     "$_root_dir/devutils/update_patches.sh" unmerge || true
     rm "$_subs_cache" || true
+    rm "$_namesubs_cache" || true
 
     (
         mv "$_src_dir" "${_src_dir}x" && \
@@ -87,14 +88,38 @@ ___helium_reset() {
     ) &
 }
 
+___helium_name_substitution() {
+    if [ "$1" = "nameunsub" ]; then
+        "$_main_repo/utils/name_substitution.sh" unsub \
+            "$_src_dir" "$_namesubs_cache"
+    elif [ "$1" = "namesub" ]; then
+        if [ -f "$_namesubs_cache" ]; then
+            echo "$_subs_cache exists, are you sure you want to do this?" >&2
+            echo "if yes, then delete the $_namesubs_cache file" >&2
+            return
+        fi
+
+        "$_main_repo/utils/name_substitution.sh" sub \
+            "$_src_dir" "$_namesubs_cache"
+    else
+        echo "unknown action: $1" >&2
+        return
+    fi
+}
+
 ___helium_substitution() {
+    ___helium_name_substitution "name$1"
+
     if [ "$1" = "unsub" ]; then
         python3 "$_main_repo/utils/domain_substitution.py" revert \
             -c "$_subs_cache" "$_src_dir"
+
+        "$_main_repo/utils/name_substitution.sh" unsub \
+            "$_src_dir" "$_namesubs_cache"
     elif [ "$1" = "sub" ]; then
-        if [ -f "$_subs_cache" ]; then
-            echo "$_subs_cache exists, are you sure you want to do this?" >&2
-            echo "if yes, then delete the $_subs_cache file" >&2
+        if [ -f "$_subs_cache" ] || [ -f "$_namesubs_cache" ]; then
+            echo "$_subs_cache (or $_namesubs_cache) exists, are you sure you want to do this?" >&2
+            echo "if yes, then delete the $_subs_cache and $_namesubs_cache file" >&2
             return
         fi
 
@@ -103,6 +128,9 @@ ___helium_substitution() {
             -f "$_main_repo/domain_substitution.list" \
             -c "$_subs_cache" \
             "$_src_dir"
+
+        "$_main_repo/utils/name_substitution.sh" sub \
+            "$_src_dir" "$_namesubs_cache"
     else
         echo "unknown action: $1" >&2
         return
@@ -164,6 +192,7 @@ __helium_menu() {
         run) ___helium_run;;
         pull) ___helium_pull;;
         sub|unsub) ___helium_substitution "$1";;
+        namesub|nameunsub) ___helium_name_substitution "$1";;
         merge) ___helium_patches_merge;;
         unmerge) ___helium_patches_unmerge;;
         push) ___helium_quilt_push;;
@@ -175,7 +204,8 @@ __helium_menu() {
             echo "\tsetup - sets up the dev environment for the first itme" >&2
             echo "\tbuild - prepares a development build binary" >&2
             echo "\trun - runs a development build of helium with dev data dir & ui devtools enabled" >&2
-            echo "\tsub - apply google domain substitutions" >&2
+            echo "\tsub - apply google domain and name substitutions" >&2
+            echo "\tnamesub - apply only name substitutions" >&2
             echo "\tunsub - undo google domain substitutions" >&2
             echo "\tmerge - merges all patches" >&2
             echo "\tunmerge - unmerges all patches" >&2
