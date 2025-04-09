@@ -108,29 +108,25 @@ ___helium_name_substitution() {
 }
 
 ___helium_substitution() {
-    ___helium_name_substitution "name$1"
-
     if [ "$1" = "unsub" ]; then
         python3 "$_main_repo/utils/domain_substitution.py" revert \
             -c "$_subs_cache" "$_src_dir"
 
-        "$_main_repo/utils/name_substitution.sh" unsub \
-            "$_src_dir" "$_namesubs_cache"
+        ___helium_name_substitution nameunsub
     elif [ "$1" = "sub" ]; then
-        if [ -f "$_subs_cache" ] || [ -f "$_namesubs_cache" ]; then
-            echo "$_subs_cache (or $_namesubs_cache) exists, are you sure you want to do this?" >&2
-            echo "if yes, then delete the $_subs_cache and $_namesubs_cache file" >&2
+        if [ -f "$_subs_cache" ]; then
+            echo "$_subs_cache exists, are you sure you want to do this?" >&2
+            echo "if yes, then delete the $_subs_cache file" >&2
             return
         fi
+
+        ___helium_name_substitution namesub
 
         python3 "$_main_repo/utils/domain_substitution.py" apply \
             -r "$_main_repo/domain_regex.list" \
             -f "$_main_repo/domain_substitution.list" \
             -c "$_subs_cache" \
             "$_src_dir"
-
-        "$_main_repo/utils/name_substitution.sh" sub \
-            "$_src_dir" "$_namesubs_cache"
     else
         echo "unknown action: $1" >&2
         return
