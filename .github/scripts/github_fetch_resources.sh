@@ -27,7 +27,7 @@ python3 "$_main_repo/utils/domain_substitution.py" apply -r "$_main_repo/domain_
 
 "$_root_dir/resources/generate_icons.sh"
 python3 "$_main_repo/utils/replace_resources.py" "$_root_dir/resources/platform_resources.txt" "$_root_dir/resources" "$_src_dir"
-python3 "$_main_repo/utils/replace_resources.py" "$_main_repo/helium_resources.txt" "$_main_repo/resources" "$_src_dir"
+python3 "$_main_repo/utils/replace_resources.py" "$_main_repo/resources/helium_resources.txt" "$_main_repo/resources" "$_src_dir"
 
 mkdir -p "$_src_dir/third_party/llvm-build/Release+Asserts"
 mkdir -p "$_src_dir/third_party/rust-toolchain/bin"
