@@ -94,7 +94,7 @@ ___helium_name_substitution() {
             "$_src_dir" "$_namesubs_cache"
     elif [ "$1" = "namesub" ]; then
         if [ -f "$_namesubs_cache" ]; then
-            echo "$_subs_cache exists, are you sure you want to do this?" >&2
+            echo "$_namesubs_cache exists, are you sure you want to do this?" >&2
             echo "if yes, then delete the $_namesubs_cache file" >&2
             return
         fi
