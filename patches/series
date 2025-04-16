@@ -13,6 +13,7 @@ ungoogled-chromium/macos/mark-remap_alloc-used.patch
 ungoogled-chromium/macos/re2-include-fix
 ungoogled-chromium/macos/build-bindgen-target-override.patch
 
+helium/macos/move-macos-settings.patch
 helium/macos/change-keychain-name.patch
 helium/macos/change-product-dir-name.patch
 helium/macos/rust-dep.patch
