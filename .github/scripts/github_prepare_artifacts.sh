@@ -29,38 +29,7 @@ if [[ -f "$_root_dir/build_finished_$_target_cpu.log" ]] ; then
   security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
   
-  # Sign the binary
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier chrome_crashpad_handler --options=restrict,library,runtime,kill out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/chrome_crashpad_handler
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium.helper --options restrict,library,runtime,kill out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/Helium\ Helper.app
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium.helper.renderer --options restrict,kill,runtime --entitlements $_root_dir/entitlements/helper-renderer-entitlements.plist out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/Helium\ Helper\ \(Renderer\).app
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium.helper --options restrict,kill,runtime --entitlements $_root_dir/entitlements/helper-gpu-entitlements.plist out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/Helium\ Helper\ \(GPU\).app
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium.helper.plugin --options restrict,kill,runtime --entitlements $_root_dir/entitlements/helper-plugin-entitlements.plist out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/Helium\ Helper\ \(Plugin\).app
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium.framework.AlertNotificationService --options restrict,library,runtime,kill out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/Helium\ Helper\ \(Alerts\).app
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier app_mode_loader --options restrict,library,runtime,kill out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/app_mode_loader
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier web_app_shortcut_copier --options restrict,library,runtime,kill out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/web_app_shortcut_copier
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier libEGL out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Libraries/libEGL.dylib
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier libGLESv2 out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Libraries/libGLESv2.dylib
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier libvk_swiftshader out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Libraries/libvk_swiftshader.dylib
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium.framework out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium --options restrict,library,runtime,kill --entitlements $_root_dir/entitlements/app-entitlements.plist --requirements '=designated => identifier "net.imput.helium" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */' out/Default/Helium.app
-
-  # Verify the binary signature
-  codesign --verify --deep --verbose=4 out/Default/Helium.app
-
-  # Pepare app notarization
-  ditto -c -k --keepParent "out/Default/Helium.app" "notarize.zip"
-
-  # Notarize the app
-  xcrun notarytool store-credentials "notarytool-profile" --apple-id "$PROD_MACOS_NOTARIZATION_APPLE_ID" --team-id "$PROD_MACOS_NOTARIZATION_TEAM_ID" --password "$PROD_MACOS_NOTARIZATION_PWD"
-  xcrun notarytool submit "notarize.zip" --keychain-profile "notarytool-profile" --wait
-  xcrun stapler staple "out/Default/Helium.app"
-
-  # Package the app
-  chrome/installer/mac/pkg-dmg \
-    --sourcefile --source out/Default/Helium.app \
-    --target "$_root_dir/$_file_name" \
-    --volname Helium --symlink /Applications:/Applications \
-    --format UDBZ --verbosity 2
+  "$_root_dir/sign_and_package_app.sh"
 
   cd "$_root_dir"
   echo -e "md5: \nsha1: \nsha256: " | tee ./hash_types.txt
