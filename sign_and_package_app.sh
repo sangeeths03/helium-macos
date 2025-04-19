@@ -35,7 +35,7 @@ if [ "$MACOS_CERTIFICATE_NAME" != "" ]; then
   codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier libGLESv2 out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Libraries/libGLESv2.dylib
   codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier libvk_swiftshader out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Libraries/libvk_swiftshader.dylib
   codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium.framework out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework
-  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium --options restrict,library,runtime,kill --entitlements $APP_ENTITLEMENTS --requirements '=designated => identifier "net.imput.helium" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = '"$$PROD_MACOS_NOTARIZATION_TEAM_ID" out/Default/Helium.app
+  codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium --options restrict,library,runtime,kill --entitlements $APP_ENTITLEMENTS --requirements '=designated => identifier "net.imput.helium" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = '"$PROD_MACOS_NOTARIZATION_TEAM_ID" out/Default/Helium.app
 
   # Verify the binary signature
   codesign --verify --deep --verbose=4 out/Default/Helium.app
