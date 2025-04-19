@@ -28,6 +28,12 @@ if [[ -f "$_root_dir/build_finished_$_target_cpu.log" ]] ; then
   security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
   security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+
+  if [ "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64" != ""]; then
+    export PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH=$(mktemp)
+    echo "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64" \
+      | base64 --decode > "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH"
+  fi
   
   "$_root_dir/sign_and_package_app.sh"
 

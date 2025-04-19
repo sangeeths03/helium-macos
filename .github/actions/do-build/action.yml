@@ -20,6 +20,8 @@ inputs:
     type: string
   PROD_MACOS_NOTARIZATION_PWD:
     type: string
+  PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64:
+    type: string
 outputs:
   status:
     value: ${{ steps.build.outputs.status }}
@@ -72,6 +74,7 @@ runs:
         PROD_MACOS_NOTARIZATION_APPLE_ID: ${{ inputs.PROD_MACOS_NOTARIZATION_APPLE_ID }}
         PROD_MACOS_NOTARIZATION_TEAM_ID: ${{ inputs.PROD_MACOS_NOTARIZATION_TEAM_ID }}
         PROD_MACOS_NOTARIZATION_PWD: ${{ inputs.PROD_MACOS_NOTARIZATION_PWD }}
+        PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64: ${{ inputs.PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64 }}
     - name: Upload part build artifact
       uses: actions/upload-artifact@v4
       with:
