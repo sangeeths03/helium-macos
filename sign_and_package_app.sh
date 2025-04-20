@@ -14,7 +14,7 @@ xattr -cs out/Default/Helium.app
 if [ "$MACOS_CERTIFICATE_NAME" != "" ]; then
   APP_ENTITLEMENTS="$_root_dir/entitlements/app-entitlements.plist"
 
-  if [ "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH" != "" ]; then
+  if ! [ -z "${PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH-}" ]; then
     APP_ENTITLEMENTS=$(mktemp)
     sed 's/${CHROMIUM_TEAM_ID}/'"$PROD_MACOS_NOTARIZATION_TEAM_ID/" \
       "$_root_dir/entitlements/app-entitlements-all.plist" > "$APP_ENTITLEMENTS"
@@ -49,7 +49,7 @@ if [ "$MACOS_CERTIFICATE_NAME" != "" ]; then
   xcrun stapler staple "out/Default/Helium.app"
 
   # Clean up entitlements if needed
-  if [ "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH" != "" ]; then
+  if ! [ -z "${PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH-}" ]; then
     rm -f "$APP_ENTITLEMENTS"
   fi
 else
