@@ -11,7 +11,7 @@ _package_revision=$(cat "$_root_dir"/revision.txt)
 # See https://github.com/ungoogled-software/ungoogled-chromium-macos/issues/17
 xattr -cs out/Default/Helium.app
 
-if [ "$MACOS_CERTIFICATE_NAME" != "" ]; then
+if ! [ -z "${MACOS_CERTIFICATE_NAME-}" ]; then
   APP_ENTITLEMENTS="$_root_dir/entitlements/app-entitlements.plist"
 
   if ! [ -z "${PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH-}" ]; then
@@ -57,9 +57,13 @@ else
   codesign --force --deep --sign - out/Default/Helium.app
 fi
 
+if [ -z "${OUT_DMG_PATH:-}" ]; then
+  OUT_DMG_PATH="$_root_dir/build/helium_${_chromium_version}-${_ungoogled_revision}.${_package_revision}_macos.dmg"
+fi
+
 # Package the app
 chrome/installer/mac/pkg-dmg \
   --sourcefile --source out/Default/Helium.app \
-  --target "$_root_dir/build/helium_${_chromium_version}-${_ungoogled_revision}.${_package_revision}_macos.dmg" \
+  --target "$OUT_DMG_PATH" \
   --volname Helium --symlink /Applications:/Applications \
   --format UDBZ --verbosity 2
