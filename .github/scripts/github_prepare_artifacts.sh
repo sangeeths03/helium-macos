@@ -29,13 +29,17 @@ if [[ -f "$_root_dir/build_finished_$_target_cpu.log" ]] ; then
   security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
 
-  if [ "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64" != ""]; then
+  if ! [ -z "${PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64:-}" ]; then
     export PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH=$(mktemp)
     echo "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64" \
       | base64 --decode > "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH"
   fi
   
   "$_root_dir/sign_and_package_app.sh"
+
+  if ! [ -z "${PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64:-}" ]; then
+    rm -f "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH"
+  fi
 
   cd "$_root_dir"
   echo -e "md5: \nsha1: \nsha256: " | tee ./hash_types.txt
