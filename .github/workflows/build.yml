@@ -51,7 +51,7 @@ jobs:
         with:
           body_path: ./github_release_note.md
           draft: false
-          prerelease: false
+          prerelease: true
           files: |
             ./release_asset/${{ steps.bake.outputs.arm64_file_name }}
             ./release_asset/${{ steps.bake.outputs.x64_file_name }}
