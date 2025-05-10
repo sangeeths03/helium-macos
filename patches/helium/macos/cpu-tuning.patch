@@ -1,0 +1,11 @@
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -1490,6 +1490,8 @@ config("compiler_cpu_abi") {
+       cflags += [ "-m64" ]
+       ldflags += [ "-m64" ]
+     }
++  } else if (is_apple && current_cpu == "arm64") {
++      cflags += [ "-mcpu=apple-m1" ]
+   }
+ 
+   asmflags = cflags
