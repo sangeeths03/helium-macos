@@ -95,8 +95,8 @@ ___helium_reset() {
 
 ___helium_name_substitution() {
     if [ "$1" = "nameunsub" ]; then
-        "$_main_repo/utils/name_substitution.sh" unsub \
-            "$_src_dir" "$_namesubs_cache"
+        python3 "$_main_repo/utils/name_substitution.py" --unsub \
+            -t "$_src_dir" --backup-path "$_namesubs_cache"
     elif [ "$1" = "namesub" ]; then
         if [ -f "$_namesubs_cache" ]; then
             echo "$_namesubs_cache exists, are you sure you want to do this?" >&2
@@ -104,8 +104,8 @@ ___helium_name_substitution() {
             return
         fi
 
-        "$_main_repo/utils/name_substitution.sh" sub \
-            "$_src_dir" "$_namesubs_cache"
+        python3 "$_main_repo/utils/name_substitution.py" --sub \
+            -t "$_src_dir" --backup-path "$_namesubs_cache"
     else
         echo "unknown action: $1" >&2
         return
