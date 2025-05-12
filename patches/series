@@ -18,4 +18,3 @@ helium/macos/change-keychain-name.patch
 helium/macos/change-product-dir-name.patch
 helium/macos/rust-dep.patch
 helium/macos/fix-pwa-shims.patch
-helium/macos/cpu-tuning.patch
