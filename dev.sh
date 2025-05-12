@@ -201,13 +201,14 @@ __helium_menu() {
         resources) ___helium_resources;;
         reset) ___helium_reset;;
         *)
-            echo "usage: he (setup | build | run | sub | unsub | merge | unmerge | push | pop | pull | reset)" >&2
+            echo "usage: he (setup | build | run | sub | unsub | namesub | nameunsub | merge | unmerge | push | pop | pull | reset)" >&2
             echo "\tsetup - sets up the dev environment for the first itme" >&2
             echo "\tbuild - prepares a development build binary" >&2
             echo "\trun - runs a development build of helium with dev data dir & ui devtools enabled" >&2
             echo "\tsub - apply google domain and name substitutions" >&2
-            echo "\tnamesub - apply only name substitutions" >&2
             echo "\tunsub - undo google domain substitutions" >&2
+            echo "\tnamesub - apply only name substitutions" >&2
+            echo "\tnameunsub - undo name substitutions" >&2
             echo "\tmerge - merges all patches" >&2
             echo "\tunmerge - unmerges all patches" >&2
             echo "\tpush - applies all patches" >&2
