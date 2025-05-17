@@ -23,12 +23,12 @@ if [[ -f "$_root_dir/build_finished_$_target_cpu.log" ]] ; then
   xattr -cs out/Default/Helium.app
   
   # Prepar the certificate for app signing
-  echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+  echo $MACOS_CERTIFICATE | base64 --decode > "$TMPDIR/certificate.p12"
 
   security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
   security default-keychain -s build.keychain
   security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
-  security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+  security import "$TMPDIR/certificate.p12" -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
 
   if ! [ -z "${PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_B64:-}" ]; then

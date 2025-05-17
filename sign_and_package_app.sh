@@ -44,12 +44,14 @@ if ! [ -z "${MACOS_CERTIFICATE_NAME-}" ]; then
   codesign --verify --deep --verbose=4 out/Default/Helium.app
 
   # Pepare app notarization
-  ditto -c -k --keepParent "out/Default/Helium.app" "notarize.zip"
+  ditto -c -k --keepParent "out/Default/Helium.app" "$TMPDIR/notarize.zip"
 
   # Notarize the app
   xcrun notarytool store-credentials "notarytool-profile" --apple-id "$PROD_MACOS_NOTARIZATION_APPLE_ID" --team-id "$PROD_MACOS_NOTARIZATION_TEAM_ID" --password "$PROD_MACOS_NOTARIZATION_PWD"
-  xcrun notarytool submit "notarize.zip" --keychain-profile "notarytool-profile" --wait
+  xcrun notarytool submit "$TMPDIR/notarize.zip" --keychain-profile "notarytool-profile" --wait
   xcrun stapler staple "out/Default/Helium.app"
+
+  rm "$TMPDIR/notarize.zip"
 
   # Clean up entitlements if needed
   if ! [ -z "${PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH-}" ]; then
