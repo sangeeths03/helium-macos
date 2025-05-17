@@ -1,0 +1,64 @@
+--- a/chrome/browser/ui/cocoa/accelerators_cocoa.mm
++++ b/chrome/browser/ui/cocoa/accelerators_cocoa.mm
+@@ -74,7 +74,7 @@ const struct AcceleratorMapping {
+     // AcceleratorForCloseWindow().
+     {IDC_CLOSE_TAB, ui::EF_COMMAND_DOWN, ui::VKEY_W},
+ 
+-    {IDC_EMAIL_PAGE_LOCATION, ui::EF_COMMAND_DOWN | ui::EF_SHIFT_DOWN,
++    {IDC_DEV_TOOLS_INSPECT, ui::EF_COMMAND_DOWN | ui::EF_SHIFT_DOWN,
+      ui::VKEY_I},
+ #if BUILDFLAG(ENABLE_PRINTING)
+     {IDC_BASIC_PRINT, ui::EF_COMMAND_DOWN | ui::EF_ALT_DOWN, ui::VKEY_P},
+--- a/chrome/browser/ui/cocoa/share_menu_controller.mm
++++ b/chrome/browser/ui/cocoa/share_menu_controller.mm
+@@ -97,19 +97,9 @@ bool CanShare() {
+   // to fetch sharing services that can handle the NSURL type.
+   NSArray* services = [NSSharingService
+       sharingServicesForItems:@[ [NSURL URLWithString:@"https://google.com"] ]];
+-  bool directMail =
+-      base::FeatureList::IsEnabled(features::kMacDirectEmailShare);
+-  if (directMail) {
+-    NSMenuItem* email = [[NSMenuItem alloc]
+-        initWithTitle:l10n_util::GetNSString(IDS_EMAIL_LINK_MAC)
+-               action:@selector(emailLink:)
+-        keyEquivalent:[self keyEquivalentForMail]];
+-    email.target = self;
+-    [menu addItem:email];
+-  }
++
+   for (NSSharingService* service in services) {
+-    if (directMail &&
+-        [service.name isEqualToString:NSSharingServiceNameComposeEmail]) {
++    if ([service.name isEqualToString:NSSharingServiceNameComposeEmail]) {
+       continue;
+     }
+     // Don't include "Add to Reading List".
+@@ -290,26 +280,13 @@ bool CanShare() {
+ 
+ // Creates a menu item that calls |service| when invoked.
+ - (NSMenuItem*)menuItemForService:(NSSharingService*)service {
+-  BOOL isMail = [service.name isEqual:NSSharingServiceNameComposeEmail];
+-  NSString* keyEquivalent = isMail ? [self keyEquivalentForMail] : @"";
+-  NSString* title = isMail ? l10n_util::GetNSString(IDS_EMAIL_LINK_MAC)
+-                           : service.menuItemTitle;
+-  NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:title
++  NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:service.menuItemTitle
+                                                 action:@selector(performShare:)
+-                                         keyEquivalent:keyEquivalent];
++                                         keyEquivalent:@""];
+   item.target = self;
+   item.image = service.image;
+   item.representedObject = service;
+   return item;
+ }
+ 
+-- (NSString*)keyEquivalentForMail {
+-  ui::Accelerator accelerator;
+-  bool found = GetDefaultMacAcceleratorForCommandId(IDC_EMAIL_PAGE_LOCATION,
+-                                                    &accelerator);
+-  DCHECK(found);
+-  return GetKeyEquivalentAndModifierMaskFromAccelerator(accelerator)
+-      .keyEquivalent;
+-}
+-
+ @end
