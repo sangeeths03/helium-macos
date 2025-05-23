@@ -30,9 +30,7 @@ ___helium_info_pull() {
     "$_root_dir/retrieve_and_unpack_resource.sh" -d -g
 
     mkdir -p "$_src_dir/out/Default"
-    cd "$_src_dir" \
-     && git config core.untrackedCache true \
-     && git config core.fsmonitor true
+    cd "$_src_dir"
 }
 
 ___helium_info_pull_thirdparty() {
