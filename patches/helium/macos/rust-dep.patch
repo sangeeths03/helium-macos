@@ -1,10 +1,10 @@
 --- a/services/webnn/BUILD.gn
 +++ b/services/webnn/BUILD.gn
-@@ -114,6 +114,7 @@ component("webnn_service") {
+@@ -117,6 +117,7 @@ component("webnn_service") {
      deps += [
        "//third_party/coremltools:modelformat_proto",
        "//third_party/fp16",
-+      "//build/rust:cxx_cppdeps",
++      "//build/rust/allocator",
      ]
    }
  
@@ -15,7 +15,7 @@
        ]
      }
 +
-+    deps += ["//build/rust:cxx_cppdeps"]
++    deps += ["//build/rust/allocator"]
    }
  
    if (is_win) {
