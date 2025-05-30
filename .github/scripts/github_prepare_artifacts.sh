@@ -3,7 +3,7 @@
 
 _target_cpu="${1:-x86_64}"
 
-_root_dir=$(dirname $(greadlink -f $0))
+_root_dir="$(dirname "$(greadlink -f "$0")")"
 _main_repo="$_root_dir/helium-chromium"
 _src_dir="$_root_dir/build/src"
 

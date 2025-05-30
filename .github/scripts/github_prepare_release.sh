@@ -1,6 +1,6 @@
 #!/bin/bash -eux
 
-_root_dir=$(dirname $(greadlink -f $0))
+_root_dir="$(dirname "$(greadlink -f "$0")")"
 _main_repo="$_root_dir/helium-chromium"
 
 _chromium_version=$(cat $_main_repo/chromium_version.txt)

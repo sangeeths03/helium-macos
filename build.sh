@@ -3,7 +3,7 @@
 set -eux
 
 # Build script for local macOS environment
-_root_dir=$(dirname $(greadlink -f $0))
+_root_dir="$(dirname "$(greadlink -f "$0")")"
 
 source "$_root_dir/env.sh"
 
