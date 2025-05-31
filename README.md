@@ -140,4 +140,4 @@ repositories is licensed under GPL-3.0. See [LICENSE](LICENSE).
 
 Any content imported from other projects retains its original license (for
 example, any original unmodified code imported from ungoogled-chromium remains
-licensed under their [BSD 3-Clause license](https://github.com/ungoogled-software/ungoogled-chromium-macos/blob/630a05a30c8b955b6d33777aeebff2c0bce7beaa/LICENSE)).
+licensed under their [BSD 3-Clause license](LICENSE.ungoogled_chromium)).
