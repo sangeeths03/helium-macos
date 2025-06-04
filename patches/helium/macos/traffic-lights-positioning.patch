@@ -1,0 +1,117 @@
+--- a/components/remote_cocoa/app_shim/browser_native_widget_window_mac.mm
++++ b/components/remote_cocoa/app_shim/browser_native_widget_window_mac.mm
+@@ -30,6 +30,62 @@ const double kThinControllerHeight = 0.5
+ @implementation BrowserWindowFrame {
+   BOOL _inFullScreen;
+   BOOL _alwaysShowTrafficLights;
++  CGFloat _trafficLightXOffset;
++}
++
++- (void)setTrafficLightXOffset:(CGFloat)offset {
++  _trafficLightXOffset = offset;
++}
++
++- (void)displayIfNeeded {
++  [super displayIfNeeded];
++  [self _repositionTrafficLightsIfNeeded];
++}
++
++- (void)setNeedsDisplay:(BOOL)flag {
++  [super setNeedsDisplay:flag];
++  if (flag) {
++    // Delay the repositioning to happen after the display update
++    dispatch_async(dispatch_get_main_queue(), ^{
++      [self _repositionTrafficLightsIfNeeded];
++    });
++  }
++}
++
++- (void)_repositionTrafficLightsIfNeeded {
++  if (_trafficLightXOffset == 0) return;
++
++  NSWindow* window = [self window];
++  NSButton* closeButton = [window standardWindowButton:NSWindowCloseButton];
++  NSButton* miniaturizeButton = [window standardWindowButton:NSWindowMiniaturizeButton];
++  NSButton* zoomButton = [window standardWindowButton:NSWindowZoomButton];
++
++  if (!closeButton || !miniaturizeButton || !zoomButton) return;
++
++  // Store original positions to calculate offset from default
++  static NSRect originalCloseFrame = NSZeroRect;
++  if (NSEqualRects(originalCloseFrame, NSZeroRect)) {
++    originalCloseFrame = closeButton.frame;
++  }
++
++  NSRect closeFrame = closeButton.frame;
++  NSRect miniaturizeFrame = miniaturizeButton.frame;
++  NSRect zoomFrame = zoomButton.frame;
++
++  // Adjust positions only if they're not what's expected
++  CGFloat expectedCloseX = originalCloseFrame.origin.x + _trafficLightXOffset;
++  if (fabs(closeFrame.origin.x - expectedCloseX) > 1.0) {
++    CGFloat currentOffset = closeFrame.origin.x - originalCloseFrame.origin.x;
++    CGFloat additionalOffset = _trafficLightXOffset - currentOffset;
++
++    closeFrame.origin.x += additionalOffset;
++    miniaturizeFrame.origin.x += additionalOffset;
++    zoomFrame.origin.x += additionalOffset;
++
++    closeButton.frame = closeFrame;
++    miniaturizeButton.frame = miniaturizeFrame;
++    zoomButton.frame = zoomFrame;
++  }
+ }
+ 
+ // NSThemeFrame overrides.
+@@ -96,12 +152,20 @@ const double kThinControllerHeight = 0.5
+   [[window standardWindowButton:NSWindowCloseButton] setAlphaValue:1.0];
+   [[window standardWindowButton:NSWindowMiniaturizeButton] setAlphaValue:1.0];
+   [[window standardWindowButton:NSWindowZoomButton] setAlphaValue:1.0];
++
++  [self _repositionTrafficLightsIfNeeded];
+ }
+ 
+ @end
+ 
+ @implementation BrowserNativeWidgetWindow
+ 
++- (void)setTrafficLightXOffset:(CGFloat)offset {
++  BrowserWindowFrame* frame =
++    base::apple::ObjCCastStrict<BrowserWindowFrame>(self.contentView.superview);
++  [frame setTrafficLightXOffset:offset];
++}
++
+ @synthesize thinTitlebarViewController = _thinTitlebarViewController;
+ 
+ // NSWindow (PrivateAPI) overrides.
+--- a/components/remote_cocoa/app_shim/browser_native_widget_window_mac.h
++++ b/components/remote_cocoa/app_shim/browser_native_widget_window_mac.h
+@@ -11,6 +11,7 @@ REMOTE_COCOA_APP_SHIM_EXPORT
+ @interface BrowserNativeWidgetWindow : NativeWidgetMacNSWindow
+ // When set to `YES`, the traffic lights will always be shown. When set to `NO`,
+ // the traffic lights follow the default AppKit behavior.
++- (void)setTrafficLightXOffset:(CGFloat)offset;
+ - (void)setAlwaysShowTrafficLights:(BOOL)alwaysShow;
+ // A controller that keeps a small portion (0.5px) of the fullscreen AppKit
+ // NSWindow on screen.
+--- a/components/remote_cocoa/app_shim/native_widget_ns_window_bridge.mm
++++ b/components/remote_cocoa/app_shim/native_widget_ns_window_bridge.mm
+@@ -331,6 +331,7 @@ NativeWidgetMacNSWindow* NativeWidgetNSW
+                     styleMask:params->style_mask
+                       backing:NSBackingStoreBuffered
+                         defer:NO];
++      [(BrowserNativeWidgetWindow*)ns_window setTrafficLightXOffset:-9.0];
+       break;
+     case mojom::WindowClass::kFrameless:
+       ns_window = [[NativeWidgetMacFramelessNSWindow alloc]
+--- a/chrome/browser/ui/views/frame/browser_non_client_frame_view_mac.mm
++++ b/chrome/browser/ui/views/frame/browser_non_client_frame_view_mac.mm
+@@ -52,7 +52,7 @@ constexpr double kTitlePaddingWidthFract
+ 
+ // Empirical measurements of the traffic lights.
+ constexpr int kCaptionButtonsWidth = 52;
+-constexpr int kCaptionButtonsLeadingPadding = 20;
++constexpr int kCaptionButtonsLeadingPadding = 12;
+ 
+ FullscreenToolbarStyle GetUserPreferredToolbarStyle(bool always_show) {
+   // In Kiosk mode, we don't show top Chrome UI.
