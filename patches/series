@@ -20,3 +20,4 @@ helium/macos/rust-dep.patch
 helium/macos/fix-pwa-shims.patch
 helium/macos/replace-email-shortcut-with-devtools.patch
 helium/macos/traffic-lights-positioning.patch
+helium/macos/clean-main-menu.patch

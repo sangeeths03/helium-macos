@@ -1,0 +1,116 @@
+--- a/chrome/browser/ui/cocoa/main_menu_builder.mm
++++ b/chrome/browser/ui/cocoa/main_menu_builder.mm
+@@ -283,8 +283,6 @@ NSMenuItem* BuildViewMenu(NSApplication*
+                   .command_id(IDC_TOGGLE_FULLSCREEN_TOOLBAR),
+               Item(IDS_CONTEXT_MENU_SHOW_FULL_URLS)
+                   .command_id(IDC_SHOW_FULL_URLS),
+-              Item(IDS_CONTEXT_MENU_SHOW_GOOGLE_LENS_SHORTCUT)
+-                  .command_id(IDC_SHOW_GOOGLE_LENS_SHORTCUT),
+               Item(IDS_CUSTOMIZE_TOUCH_BAR)
+                   .tag(IDC_CUSTOMIZE_TOUCH_BAR)
+                   .action(@selector(toggleTouchBarCustomizationPalette:))
+@@ -345,16 +343,6 @@ NSMenuItem* BuildHistoryMenu(NSApplicati
+       Item(IDS_HISTORY_MENU_MAC)
+           .tag(IDC_HISTORY_MENU)
+           .submenu({
+-              Item(IDS_HISTORY_HOME_MAC)
+-                  .command_id(IDC_HOME)
+-                  .remove_if(is_pwa),
+-              Item(IDS_HISTORY_BACK_MAC)
+-                  .command_id(IDC_BACK),
+-              Item(IDS_HISTORY_FORWARD_MAC)
+-                  .command_id(IDC_FORWARD),
+-              Item().is_separator()
+-                  .tag(HistoryMenuBridge::kRecentlyClosedSeparator)
+-                  .remove_if(is_pwa),
+               Item(IDS_HISTORY_CLOSED_MAC)
+                   .tag(HistoryMenuBridge::kRecentlyClosedTitle)
+                   .is_section_header()
+@@ -477,45 +465,24 @@ NSMenuItem* BuildTabMenu(NSApplication*
+ 
+   // clang-format off
+   NSMenuItem* item =
+-      Item(IDS_TAB_MENU_MAC)
++    // Hopefully translates to "Tabs" in all langs
++      Item(IDS_SEARCH_ENGINES_STARTER_PACK_TABS_NAME)
+           .tag(IDC_TAB_MENU)
+           .submenu({
+-              Item(IDS_TAB_CXMENU_NEWTABTORIGHT)
+-                  .command_id(IDC_NEW_TAB_TO_RIGHT),
++              Item(IDS_HISTORY_HOME_MAC)
++                  .command_id(IDC_HOME)
++                  .remove_if(is_pwa),
++              Item(IDS_HISTORY_BACK_MAC)
++                  .command_id(IDC_BACK),
++              Item(IDS_HISTORY_FORWARD_MAC)
++                  .command_id(IDC_FORWARD),
++              Item().is_separator()
++                  .tag(HistoryMenuBridge::kRecentlyClosedSeparator)
++                  .remove_if(is_pwa),
+               Item(IDS_NEXT_TAB_MAC)
+                   .command_id(IDC_SELECT_NEXT_TAB),
+               Item(IDS_PREV_TAB_MAC)
+                   .command_id(IDC_SELECT_PREVIOUS_TAB),
+-              Item(IDS_DUPLICATE_TAB_MAC)
+-                  .command_id(IDC_DUPLICATE_TAB),
+-              Item(IDS_DUPLICATE_TARGET_TAB_MAC)
+-                  .command_id(IDC_DUPLICATE_TARGET_TAB)
+-                  .is_alternate()
+-                  .key_equivalent(@"", NSEventModifierFlagOption),
+-              Item(IDS_MUTE_SITE_MAC)
+-                  .command_id(IDC_WINDOW_MUTE_SITE),
+-              Item(IDS_MUTE_TARGET_SITE_MAC)
+-                  .command_id(IDC_MUTE_TARGET_SITE)
+-                  .is_alternate()
+-                  .key_equivalent(@"", NSEventModifierFlagOption),
+-              Item(IDS_PIN_TAB_MAC)
+-                  .command_id(IDC_WINDOW_PIN_TAB),
+-              Item(IDS_PIN_TARGET_TAB_MAC)
+-                  .command_id(IDC_PIN_TARGET_TAB)
+-                  .is_alternate()
+-                  .key_equivalent(@"", NSEventModifierFlagOption),
+-              Item(IDS_GROUP_TAB_MAC)
+-                  .command_id(IDC_WINDOW_GROUP_TAB),
+-              Item(IDS_GROUP_TARGET_TAB_MAC)
+-                  .command_id(IDC_GROUP_TARGET_TAB)
+-                  .is_alternate()
+-                  .key_equivalent(@"", NSEventModifierFlagOption),
+-              Item(IDS_TAB_CXMENU_CLOSEOTHERTABS)
+-                  .command_id(IDC_WINDOW_CLOSE_OTHER_TABS),
+-              Item(IDS_TAB_CXMENU_CLOSETABSTORIGHT)
+-                  .command_id(IDC_WINDOW_CLOSE_TABS_TO_RIGHT),
+-              Item(IDS_MOVE_TAB_TO_NEW_WINDOW)
+-                  .command_id(IDC_MOVE_TAB_TO_NEW_WINDOW),
+               Item(IDS_SEARCH_TABS)
+                   .command_id(IDC_TAB_SEARCH),
+               Item().is_separator(),
+@@ -536,15 +503,7 @@ NSMenuItem* BuildHelpMenu(NSApplication*
+   // clang-format off
+   NSMenuItem* item =
+       Item(IDS_HELP_MENU_MAC)
+-          .submenu({
+-#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+-              Item(IDS_FEEDBACK_MAC)
+-                  .command_id(IDC_FEEDBACK),
+-#endif
+-              Item(IDS_HELP_MAC)
+-                  .string_format_1(product_name)
+-                  .command_id(IDC_HELP_PAGE_VIA_MENU),
+-          })
++          .submenu({})
+           .Build();
+   // clang-format on
+ 
+@@ -566,10 +525,10 @@ NSMenu* BuildMainMenu(NSApplication* nsa
+            &BuildFileMenu,
+            &BuildEditMenu,
+            &BuildViewMenu,
+-           &BuildHistoryMenu,
++           &BuildTabMenu,
+            &BuildBookmarksMenu,
++           &BuildHistoryMenu,
+            &BuildPeopleMenu,
+-           &BuildTabMenu,
+            &BuildWindowMenu,
+            &BuildHelpMenu,
+        }) {
