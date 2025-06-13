@@ -143,7 +143,7 @@ ___helium_build() {
 ___helium_run() {
     cd "$_src_dir" && ./out/Default/Helium.app/Contents/MacOS/Helium \
     --user-data-dir="$HOME/Library/Application Support/net.imput.helium.dev" \
-    --enable-ui-devtools
+    --enable-ui-devtools=$RANDOM
 }
 
 ___helium_pull() {
