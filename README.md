@@ -1,8 +1,22 @@
 # helium-macos
+macOS development tooling & packaging for [helium-chromium](//github.com/imputnet/helium-chromium).
 
-macOS packaging for [helium-chromium](//github.com/imputnet/helium-chromium).
+## Credits
+This repo is based on
+[ungoogled-chromium-macos](https://github.com/ungoogled-software/ungoogled-chromium-macos),
+but is pretty heavily modified for Helium. Huge shout-out to everyone behind ungoogled-chromium,
+they made working with Chromium infinitely easier.
 
-Slightly edited version of [ungoogled-chromium-macos](https://github.com/ungoogled-software/ungoogled-chromium-macos).
+## License
+All code, patches, modified portions of imported code or patches, and
+any other content that is unique to Helium and not imported from other
+repositories is licensed under GPL-3.0. See [LICENSE](LICENSE).
+
+Any content imported from other projects retains its original license (for
+example, any original unmodified code imported from ungoogled-chromium remains
+licensed under their [BSD 3-Clause license](LICENSE.ungoogled_chromium)).
+
+[comment]: # (building & development instructions still work, but can be simplified in the future)
 
 ## Building
 
@@ -131,13 +145,3 @@ Once it's complete, a `.dmg` should appear in `build/`.
 11. Ensure patches/series is formatted correctly, e.g. blank lines
 12. Sanity checking for consistency in series file: `./devutils/check_patch_files.sh`
 13. Use git to add changes and commit
-
-## License
-
-All code, patches, modified portions of imported code or patches, and
-any other content that is unique to Helium and not imported from other
-repositories is licensed under GPL-3.0. See [LICENSE](LICENSE).
-
-Any content imported from other projects retains its original license (for
-example, any original unmodified code imported from ungoogled-chromium remains
-licensed under their [BSD 3-Clause license](LICENSE.ungoogled_chromium)).
