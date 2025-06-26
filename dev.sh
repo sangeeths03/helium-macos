@@ -36,7 +36,6 @@ ___helium_info_pull() {
 ___helium_info_pull_thirdparty() {
     mkdir -p "$_src_dir/third_party/llvm-build/Release+Asserts"
     mkdir -p "$_src_dir/third_party/rust-toolchain/bin"
-    ln -s "$_src_dir/third_party" "$_root_dir/build/third_party"
 
     "$_root_dir/retrieve_and_unpack_resource.sh" -p
 }
