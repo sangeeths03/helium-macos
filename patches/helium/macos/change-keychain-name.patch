@@ -1,6 +1,6 @@
 --- a/components/os_crypt/sync/keychain_password_mac.mm
 +++ b/components/os_crypt/sync/keychain_password_mac.mm
-@@ -29,13 +29,8 @@ namespace {
+@@ -30,13 +30,8 @@ namespace {
  // These two strings ARE indeed user facing.  But they are used to access
  // the encryption keyword.  So as to not lose encrypted data when system
  // locale changes we DO NOT LOCALIZE.
@@ -14,5 +14,5 @@
 +const char kDefaultServiceName[] = "Helium Storage Key";
 +const char kDefaultAccountName[] = "Helium";
  
- // Generates a random password and adds it to the Keychain.  The added password
- // is returned from the function.  If an error occurs, an empty password is
+ // These values are persisted to logs. Entries should not be renumbered and
+ // numeric values should never be reused.
