@@ -72,3 +72,7 @@ chrome/installer/mac/pkg-dmg \
   --target "$OUT_DMG_PATH" \
   --volname Helium --symlink /Applications:/Applications \
   --format UDBZ --verbosity 2
+
+if ! [ -z "${MACOS_CERTIFICATE_NAME-}" ]; then
+  codesign --sign "$MACOS_CERTIFICATE_NAME" --force "$OUT_DMG_PATH"
+fi
