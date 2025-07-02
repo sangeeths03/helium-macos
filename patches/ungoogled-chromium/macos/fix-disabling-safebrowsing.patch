@@ -2,7 +2,7 @@
 
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1780,10 +1780,6 @@ static_library("browser") {
+@@ -1782,10 +1782,6 @@ static_library("browser") {
      "//chrome/browser/prefs:util_impl",
      "//chrome/browser/profiles:profiles_extra_parts_impl",
      "//chrome/browser/profiles:profile_util_impl",
@@ -13,7 +13,7 @@
      "//chrome/browser/search",
      "//chrome/browser/search_engine_choice:impl",
      "//chrome/browser/signin:impl",
-@@ -1986,7 +1982,6 @@ static_library("browser") {
+@@ -1988,7 +1984,6 @@ static_library("browser") {
      "//chrome/browser/reading_list",
      "//chrome/browser/resource_coordinator:tab_manager_features",
      "//chrome/browser/resources/accessibility:resources",

@@ -1,0 +1,658 @@
+--- a/chrome/browser/mac/sparkle_glue.h
++++ b/chrome/browser/mac/sparkle_glue.h
+@@ -1,9 +1,13 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
+ // Copyright 2023 Viasat Inc. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the header of the corresponding patch.
+ 
+-#ifndef REBEL_CHROME_BROWSER_MAC_SPARKLE_GLUE_H_
+-#define REBEL_CHROME_BROWSER_MAC_SPARKLE_GLUE_H_
++#ifndef CHROME_BROWSER_MAC_SPARKLE_GLUE_H_
++#define CHROME_BROWSER_MAC_SPARKLE_GLUE_H_
+ 
+ #if defined(__OBJC__)
+ 
+@@ -15,6 +19,7 @@
+ #include "base/compiler_specific.h"
+ #include "base/memory/weak_ptr.h"
+ #include "chrome/browser/ui/webui/help/version_updater.h"
++#include "third_party/sparkle/Sparkle/Sparkle.h"
+ 
+ class Profile;
+ 
+@@ -27,6 +32,7 @@ using SparkleUpdaterCallbackList =
+ // WebUI About/Help page and installed version poller.
+ class VersionUpdaterSparkle : public VersionUpdater {
+  public:
++  VersionUpdaterSparkle(Profile* profile);
+   ~VersionUpdaterSparkle() override;
+ 
+   // VersionUpdater implementation.
+@@ -34,11 +40,11 @@ class VersionUpdaterSparkle : public Ver
+                       PromoteCallback promote_callback) override;
+   void PromoteUpdater() override {}
+ 
+- private:
+-  friend class VersionUpdater;
++  static SparkleObserver* sparkle_observer_;
++  static SPUUpdater* sparkle_updater_;
+ 
+-  // Clients must use VersionUpdater::Create().
+-  VersionUpdaterSparkle(Profile* profile);
++private:
++  friend class VersionUpdater;
+ 
+   VersionUpdaterSparkle(const VersionUpdaterSparkle&) = delete;
+   VersionUpdaterSparkle& operator=(const VersionUpdaterSparkle&) = delete;
+@@ -62,7 +68,7 @@ class VersionUpdaterSparkle : public Ver
+ #endif  // __OBJC__
+ 
+ // Functions that may be accessed from non-Objective-C C/C++ code.
+-namespace rebel {
++namespace helium {
+ 
+ // Attempt to relaunch browser and install updates if any.
+ void RelaunchBrowserUsingSparkle();
+@@ -80,6 +86,6 @@ std::u16string CurrentlyDownloadedVersio
+ // Check if current application has an update which is ready to be installed.
+ bool ApplicationIsNearlyUpdated();
+ 
+-}  // namespace rebel
++}  // namespace helium
+ 
+-#endif  // REBEL_CHROME_BROWSER_MAC_SPARKLE_GLUE_H_
++#endif  // CHROME_BROWSER_MAC_SPARKLE_GLUE_H_
+--- a/chrome/browser/mac/sparkle_glue.mm
++++ b/chrome/browser/mac/sparkle_glue.mm
+@@ -1,8 +1,12 @@
++// Copyright 2025 The Helium Authors
++// You can use, redistribute, and/or modify this source code under
++// the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
+ // Copyright 2023 Viasat Inc. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the header of the corresponding patch.
+ 
+-#include "rebel/chrome/browser/mac/sparkle_glue.h"
++#include "chrome/browser/mac/sparkle_glue.h"
+ 
+ #include "base/apple/foundation_util.h"
+ #include "base/command_line.h"
+@@ -15,98 +19,48 @@
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/task/thread_pool.h"
+ #include "build/branding_buildflags.h"
++#include "chrome/browser/channel_selection.h"
++#include "chrome/browser/lifetime/application_lifetime.h"
+ #include "chrome/browser/obsolete_system/obsolete_system.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/webui/help/version_updater.h"
+ #include "chrome/grit/branded_strings.h"
+ #include "chrome/grit/generated_resources.h"
++#include "components/helium_services/helium_services_helpers.h"
+ #include "content/public/browser/browser_task_traits.h"
+ #include "content/public/browser/browser_thread.h"
+ #include "content/public/browser/web_contents.h"
+ #include "ui/base/l10n/l10n_util.h"
+ 
+-#include "rebel/chrome/browser/channel_selection.h"
+-#include "rebel/third_party/sparkle/src/Sparkle/Sparkle.h"
+-
+-namespace {
+-
+-class VersionUpdaterForTests : public VersionUpdater {
+- public:
+-  ~VersionUpdaterForTests() override = default;
+-
+-  void CheckForUpdate(StatusCallback callback, PromoteCallback) override {
+-    callback.Run(DISABLED, 0, false, false, std::string(), 0, std::u16string());
+-  }
+-
+-  void PromoteUpdater() override {}
+-
+- protected:
+-  friend class VersionUpdater;
+-
+-  VersionUpdaterForTests() = default;
+-
+- private:
+-  VersionUpdaterForTests(const VersionUpdaterForTests&) = delete;
+-  VersionUpdaterForTests& operator=(const VersionUpdaterForTests&) = delete;
+-};
+-
+-}  // namespace
+-
+-// A version comparator to allow downgrading versions when the user has decided
+-// to change channels.
+-@interface ChannelRespectingVersionComparator : NSObject <SUVersionComparison>
+-@end
+-
+-@implementation ChannelRespectingVersionComparator {
+-  raw_ptr<Profile> profile_;
+-}
+-
+-- (instancetype)initWithProfile:(Profile*)profile {
+-  if ((self = [super init])) {
+-    profile_ = profile;
+-  }
+-
+-  return self;
+-}
+-
+-- (NSComparisonResult)compareVersion:(NSString*)versionA
+-                           toVersion:(NSString*)versionB {
+-  if (rebel::DidUserSelectNewChannel(profile_->GetPrefs())) {
+-    return NSOrderedAscending;
+-  }
+-
+-  auto* comparator = [SUStandardVersionComparator defaultComparator];
+-  return [comparator compareVersion:versionA toVersion:versionB];
+-}
+-
+-@end
++#include "third_party/sparkle/Sparkle/Sparkle.h"
++#include "third_party/sparkle/Sparkle/SPUHeadlessUserDriver.h"
+ 
+ // SparkleObserver is a simple notification observer for Sparkle status.
+-@interface SparkleObserver : NSObject <SUUpdaterDelegate> {
++@interface SparkleObserver : NSObject <SPUUpdaterDelegate> {
+   SparkleUpdaterCallbackList status_callbacks_;
+   SEQUENCE_CHECKER(sequence_checker_);
+ }
+ 
++// Callback for restart
++@property (nonatomic, copy) void (^invocationBlock)(void);
++
+ // URL of the Sparkle appcast.xml file
+-@property(nonatomic, strong) NSString* appcastFeedUrl;
++@property(nonatomic, strong) NSString* currentlyDownloadedVersion;
+ 
+ @end  // @interface SparkleObserver
+ 
+ @implementation SparkleObserver {
+-  raw_ptr<Profile> profile_;
++  Profile* profile_;
+ }
+ 
+-@synthesize appcastFeedUrl = appcastFeedUrl_;
++@synthesize invocationBlock = invocationBlock_;
++@synthesize currentlyDownloadedVersion = currentlyDownloadedVersion_;
+ 
+ - (id)initWithProfile:(Profile*)profile {
+   if ((self = [super init])) {
+     DETACH_FROM_SEQUENCE(sequence_checker_);
+ 
+-    appcastFeedUrl_ = nil;
+     profile_ = profile;
+-
+-    [self registerAsSparkleObserver];
+-    [SUUpdater sharedUpdater].delegate = self;
+   }
+ 
+   return self;
+@@ -119,63 +73,55 @@ class VersionUpdaterForTests : public Ve
+ }
+ 
+ - (void)dealloc {
+-  [SUUpdater sharedUpdater].delegate = nil;
+-  [self unregisterAsSparkleObserver];
+-}
+-
+-- (void)registerAsSparkleObserver {
+-  NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+-  [center
+-      addObserver:self
+-         selector:@selector(handleUpdaterDidFinishLoadingAppCastNotification:)
+-             name:SUUpdaterDidFinishLoadingAppCastNotification
+-           object:nil];
+-  [center addObserver:self
+-             selector:@selector(handleUpdaterDidFindValidUpdateNotification:)
+-                 name:SUUpdaterDidFindValidUpdateNotification
+-               object:nil];
+-  [center addObserver:self
+-             selector:@selector
+-             (handleUpdaterDidReachNearlyUpdatedStateNotification:)
+-                 name:SUUpdaterDidReachNearlyUpdatedStateNotification
+-               object:nil];
+-  [center addObserver:self
+-             selector:@selector(handleUpdaterDidNotFindUpdateNotification:)
+-                 name:SUUpdaterDidNotFindUpdateNotification
+-               object:nil];
+-}
+-
+-- (void)unregisterAsSparkleObserver {
+-  [[NSNotificationCenter defaultCenter] removeObserver:self];
++  if (self.invocationBlock != nil) {
++    self.invocationBlock = nil;
++  }
+ }
+ 
+ // Received reply from server with a list of updates.
+-- (void)handleUpdaterDidFinishLoadingAppCastNotification:
+-    (NSNotification*)notification {
++- (void)updater:(nonnull SPUUpdater *)updater
++    didFinishLoadingAppcast:(nonnull SUAppcast *)appcast {
+   [self updateStatus:VersionUpdater::CHECKING error_string:nil];
+ }
+ 
+ // In the list of updates there is a valid update.
+-- (void)handleUpdaterDidFindValidUpdateNotification:
+-    (NSNotification*)notification {
++- (void)updater:(nonnull SPUUpdater *)updater
++    didFindValidUpdate:(nonnull SUAppcastItem *)item {
+   [self updateStatus:VersionUpdater::UPDATING error_string:nil];
+ }
+ 
+ // There is a downloaded and unarchived version, waiting for application quit.
+-- (void)handleUpdaterDidReachNearlyUpdatedStateNotification:
+-    (NSNotification*)notification {
++- (BOOL)updater:(SPUUpdater *)updater
++          willInstallUpdateOnQuit:(SUAppcastItem *)item
++          immediateInstallationBlock:(void (^)(void))immediateInstallHandler {
++
++  currentlyDownloadedVersion_ = item.versionString;
++  self.invocationBlock = immediateInstallHandler;
+   [self updateStatus:VersionUpdater::NEARLY_UPDATED error_string:nil];
+-  rebel::StoreSelectedChannel(profile_->GetPrefs());
++  return YES;
++}
++
++- (BOOL)shouldAccessUpdateService {
++  if (!profile_) {
++    return NO;
++  }
++
++  return helium::ShouldAccessUpdateService(*profile_->GetPrefs());
++}
++
++- (BOOL)updater:(nonnull SPUUpdater *)updater
++    mayPerformUpdateCheck:(SPUUpdateCheck)updateCheck
++                    error:(NSError *_Nullable *_Nullable)error {
++    return [self shouldAccessUpdateService];
+ }
+ 
+ // In the list of updates there are no new version available.
+-- (void)handleUpdaterDidNotFindUpdateNotification:
+-    (NSNotification*)notification {
++- (void)updaterDidNotFindUpdate:(nonnull SPUUpdater *)updater {
+   [self updateStatus:VersionUpdater::UPDATED error_string:nil];
+ }
+ 
+ // Delegated method. Error handler for the Sparkle messages.
+-- (void)updater:(SUUpdater*)updater didAbortWithError:(NSError*)error {
++- (void)updater:(SPUUpdater*)updater didAbortWithError:(NSError*)error {
+   if (error.code == SUNoUpdateError) {
+     // Handled by notifications
+     return;
+@@ -185,50 +131,22 @@ class VersionUpdaterForTests : public Ve
+ }
+ 
+ // Delegated method. Return the appcast URL for the installed channel.
+-- (NSString*)feedURLStringForUpdater:(SUUpdater*)updater {
+-  if (self.appcastFeedUrl != nil) {
+-    return self.appcastFeedUrl;
+-  }
+-
+-  std::string update_url = rebel::GetChannelUpdateURL(profile_->GetPrefs());
+-
+-  self.appcastFeedUrl =
+-      [NSString stringWithCString:update_url.c_str()
+-                         encoding:[NSString defaultCStringEncoding]];
+-  return self.appcastFeedUrl;
+-}
+-
+-// Delegated method. Override the version comparator to check if the user has
+-// decided to switch channels.
+-- (id<SUVersionComparison>)versionComparatorForUpdater:(SUUpdater*)updater {
+-  return [[ChannelRespectingVersionComparator alloc] initWithProfile:profile_];
++- (NSString*)feedURLStringForUpdater:(SPUUpdater*)updater {
++  return base::SysUTF8ToNSString(
++    helium::GetBrowserUpdateURL(*profile_->GetPrefs()).spec());
+ }
+ 
+-// Delegated method. Don't provide the currently installed version in the update
+-// request if the user has decided to switch channels.
+-- (BOOL)updateRequestShouldIncludeVersion:(SUUpdater*)updater {
+-  return !rebel::DidUserSelectNewChannel(profile_->GetPrefs());
++- (void)updater:(SPUUpdater*)updater failedToDownloadUpdate:(NSError*)error {
++  [self updateStatus:VersionUpdater::FAILED
++        error_string:[error.localizedDescription copy]];
+ }
+ 
+-// Delegated method. When we don't provide the currently installed version in
+-// the update request, we get a bunch of candidate updates. Choose the newest.
+-- (SUAppcastItem*)bestValidUpdateInAppcast:(SUAppcast*)appcast
+-                                forUpdater:(SUUpdater*)updater {
+-  SUAppcastItem* item = nil;
+-
+-  if (rebel::DidUserSelectNewChannel(profile_->GetPrefs())) {
+-    auto* comparator = [SUStandardVersionComparator defaultComparator];
+-
+-    for (SUAppcastItem* candidate in appcast.items) {
+-      if (!item || ([comparator compareVersion:item.versionString
+-                                     toVersion:candidate.versionString] ==
+-                    NSOrderedAscending)) {
+-        item = candidate;
+-      }
+-    }
+-  }
+-
+-  return item;
++- (nonnull NSSet<NSString *> *)allowedChannelsForUpdater:
++    (nonnull SPUUpdater *)updater
++{
++    NSString *channel = base::SysUTF8ToNSString(
++      helium::GetSelectedChannel());
++    return [NSSet setWithObject:channel];
+ }
+ 
+ - (void)updateStatus:(VersionUpdater::Status)status
+@@ -241,47 +159,67 @@ class VersionUpdaterForTests : public Ve
+ 
+ std::unique_ptr<VersionUpdater> VersionUpdater::Create(
+     content::WebContents* web_contents) {
+-  if (rebel::SparkleEnabled()) {
+-    auto* profile =
+-        Profile::FromBrowserContext(web_contents->GetBrowserContext());
++  auto* profile =
++    Profile::FromBrowserContext(web_contents->GetBrowserContext());
+ 
+-    if (profile) {
+-      return base::WrapUnique(new VersionUpdaterSparkle(profile));
+-    }
++  if (profile) {
++    return base::WrapUnique(new VersionUpdaterSparkle(profile));
+   }
+ 
+-  return base::WrapUnique(new VersionUpdaterForTests);
++  NOTREACHED();
+ }
+ 
++// static
++SparkleObserver* VersionUpdaterSparkle::sparkle_observer_ = nullptr;
++
++// static
++SPUUpdater* VersionUpdaterSparkle::sparkle_updater_ = nullptr;
++
+ VersionUpdaterSparkle::VersionUpdaterSparkle(Profile* profile)
+     : weak_ptr_factory_(this) {
++
+   // Ensure the Sparkle observer is only created once because there is only a
+   // single Sparkle instance. We do not want to reset Sparkle's delegate, etc.
+   static SparkleObserver* sparkle_observer = nil;
++  static SPUHeadlessUserDriver* sparkle_driver = nil;
+   static dispatch_once_t token;
++  static NSBundle* hostBundle = [NSBundle mainBundle];
+ 
+   dispatch_once(&token, ^{
++    sparkle_driver = [[SPUHeadlessUserDriver alloc] init];
+     sparkle_observer = [[SparkleObserver alloc] initWithProfile:profile];
++
++    VersionUpdaterSparkle::sparkle_observer_ = sparkle_observer;
++    VersionUpdaterSparkle::sparkle_updater_ = [[SPUUpdater alloc]
++                                              initWithHostBundle:hostBundle
++                                              applicationBundle:hostBundle
++                                              userDriver:sparkle_driver
++                                              delegate:sparkle_observer];
++
+   });
+ 
+-  sparkle_subscription_ = [sparkle_observer
++  sparkle_subscription_ = [VersionUpdaterSparkle::sparkle_observer_
+       registerStatusCallback:base::BindRepeating(
+                                  &VersionUpdaterSparkle::UpdateStatus,
+                                  weak_ptr_factory_.GetWeakPtr())];
++  helium::InitializeSparkleFramework();
+ }
+ 
+ VersionUpdaterSparkle::~VersionUpdaterSparkle() = default;
+ 
+ void VersionUpdaterSparkle::CheckForUpdate(StatusCallback status_callback,
+                                            PromoteCallback promote_callback) {
++
++  SPUUpdater* updater = VersionUpdaterSparkle::sparkle_updater_;
++  SparkleObserver* observer = VersionUpdaterSparkle::sparkle_observer_;
++
+   // Copy the callbacks, we will re-use this for the remaining lifetime
+   // of this object.
+   status_callback_ = status_callback;
+   promote_callback_ = promote_callback;
+ 
+-  SUUpdater* updater = [SUUpdater sharedUpdater];
+-  if (updater) {
+-    if (updater.isNearlyUpdated) {
++  if (observer && [observer shouldAccessUpdateService]) {
++    if (observer.invocationBlock || observer.currentlyDownloadedVersion) {
+       // When updater already has update, don't interrupt it by new check,
+       // instead suggest user to "Relaunch" browser.
+       UpdateStatus(NEARLY_UPDATED, nil);
+@@ -325,7 +263,7 @@ void VersionUpdaterSparkle::UpdateStatus
+   // below the error in a <pre> block. Don't bother displaying detail messages
+   // on a success/in-progress/indeterminate status.
+   if (!error_messages.empty()) {
+-    VLOG(1) << "Update error messages: " << error_messages;
++    LOG(ERROR) << "Update error messages: " << error_messages;
+ 
+     if (status == FAILED) {
+       if (!message.empty()) {
+@@ -342,56 +280,71 @@ void VersionUpdaterSparkle::UpdateStatus
+   status_callback_.Run(status, 0, false, false, std::string(), 0, message);
+ }
+ 
+-namespace rebel {
++namespace helium {
+ 
+ void RelaunchBrowserUsingSparkle() {
++  SparkleObserver* observer = VersionUpdaterSparkle::sparkle_observer_;
++
+   // Tell Sparkle to restart if possible.
+-  SUUpdater* updater = [SUUpdater sharedUpdater];
+-  if (updater) {
+-    [updater forceInstallAndRelaunch];
++  if (observer) {
++    if (observer.invocationBlock) {
++      observer.invocationBlock();
++      observer.invocationBlock = nil;
++    } else {
++      chrome::AttemptRestart();
++    }
+   }
+ }
+ 
+ void InitializeSparkleFramework() {
+-  SUUpdater* updater = [SUUpdater sharedUpdater];
++  SPUUpdater* updater = VersionUpdaterSparkle::sparkle_updater_;
++  SparkleObserver* observer = VersionUpdaterSparkle::sparkle_observer_;
++
+   if (updater) {
++    NSError* err = nullptr;
+     updater.automaticallyChecksForUpdates = YES;
+     updater.automaticallyDownloadsUpdates = YES;
++
++    if (!observer || ![observer shouldAccessUpdateService]) {
++      return;
++    }
++
++    if (![updater startUpdater:&err] && err && observer) {
++        [observer updateStatus:VersionUpdater::FAILED
++                  error_string:[err.localizedDescription copy]];
++    }
+   }
+ }
+ 
+ bool SparkleEnabled() {
+-#if BUILDFLAG(REBEL_SPARKLE_ENABLED)
+   if (base::apple::AmIBundled()) {
+-    return [SUUpdater sharedUpdater] != nil;
++    return VersionUpdaterSparkle::sparkle_updater_ != nil;
+   }
+-#endif
+ 
+   return false;
+ }
+ 
+ std::u16string CurrentlyDownloadedVersion() {
+-  SUUpdater* updater = [SUUpdater sharedUpdater];
+-  if (!updater) {
++  SparkleObserver* observer = VersionUpdaterSparkle::sparkle_observer_;
++
++  if (!observer) {
+     return std::u16string();
+   }
+ 
+-  NSString* version = updater.nearlyUpdatedVersionString;
+-  if (!version) {
++  if (!observer.currentlyDownloadedVersion) {
+     return std::u16string();
+   }
+ 
+-  return base::SysNSStringToUTF16(
+-      base::apple::ObjCCastStrict<NSString>(version));
++  return base::SysNSStringToUTF16(observer.currentlyDownloadedVersion);
+ }
+ 
+ bool ApplicationIsNearlyUpdated() {
+-  SUUpdater* updater = [SUUpdater sharedUpdater];
+-  if (!updater) {
++  SparkleObserver* observer = VersionUpdaterSparkle::sparkle_observer_;
++  if (!observer) {
+     return false;
+   }
+ 
+-  return updater.isNearlyUpdated;
++  return observer.invocationBlock;
+ }
+ 
+-}  // namespace rebel
++}  // namespace helium
+--- a/chrome/browser/upgrade_detector/get_installed_version_mac.mm
++++ b/chrome/browser/upgrade_detector/get_installed_version_mac.mm
+@@ -11,12 +11,12 @@
+ #include "base/task/task_traits.h"
+ #include "base/task/thread_pool.h"
+ #include "base/version.h"
++#include "chrome/browser/buildflags.h"
+ #include "chrome/browser/updater/browser_updater_client_util.h"
+ 
+-#include "build/branding_buildflags.h"  // Needed for REBEL_BROWSER.
+-#if BUILDFLAG(REBEL_BROWSER)
++#if BUILDFLAG(ENABLE_SPARKLE)
+ #include "base/strings/utf_string_conversions.h"
+-#include "rebel/chrome/browser/mac/sparkle_glue.h"
++#include "chrome/browser/mac/sparkle_glue.h"
+ #endif
+ 
+ void GetInstalledVersion(InstalledVersionCallback callback) {
+@@ -24,10 +24,10 @@ void GetInstalledVersion(InstalledVersio
+       FROM_HERE,
+       {base::MayBlock(), base::TaskPriority::BEST_EFFORT,
+        base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN},
+-#if BUILDFLAG(REBEL_BROWSER)
++#if BUILDFLAG(ENABLE_SPARKLE)
+       base::BindOnce([] {
+         return InstalledAndCriticalVersion(base::Version(
+-            base::UTF16ToASCII(rebel::CurrentlyDownloadedVersion())));
++            base::UTF16ToASCII(helium::CurrentlyDownloadedVersion())));
+       }),
+ #else
+       base::BindOnce([] {
+--- a/third_party/sparkle/BUILD.gn
++++ b/third_party/sparkle/BUILD.gn
+@@ -1,3 +1,7 @@
++# Copyright 2025 The Helium Authors
++# You can use, redistribute, and/or modify this source code under
++# the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
+ # Copyright 2023 Viasat Inc. All rights reserved.
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the header of the corresponding patch.
+@@ -16,7 +20,7 @@ bundle_data("sparkle_framework") {
+ action("build_sparkle_framework") {
+   script = "build_sparkle_framework.py"
+ 
+-  sources = [ "src/REVISION" ]
++  sources = [ "Package.swift" ]
+   outputs = [ "$root_out_dir/Sparkle.framework" ]
+ }
+ 
+@@ -29,6 +33,7 @@ config("sparkle_link_test") {
+     "-framework",
+     "Sparkle",
+   ]
++  include_dirs = [ "//third_party/sparkle" ]
+ }
+ 
+ config("sparkle_link_framework") {
+@@ -40,4 +45,5 @@ config("sparkle_link_framework") {
+     "-framework",
+     "Sparkle",
+   ]
++  include_dirs = [ "//third_party/sparkle" ]
+ }
+--- a/third_party/sparkle/build_sparkle_framework.py
++++ b/third_party/sparkle/build_sparkle_framework.py
+@@ -1,14 +1,19 @@
+ #!/usr/bin/env python3
+ 
++# Copyright 2025 The Helium Authors
++# You can use, redistribute, and/or modify this source code under
++# the terms of the GPL-3.0 license that can be found in the LICENSE file.
++
+ # Copyright 2023 Viasat Inc. All rights reserved.
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the header of the corresponding patch.
+ import os
+ import subprocess
+ import sys
++import tempfile
+ 
+ # In-order targets to build
+-TARGETS = ['bsdiff', 'ed25519', 'Sparkle']
++TARGETS = ['Sparkle']
+ 
+ class ChangeDirectory(object):
+   """
+@@ -27,26 +32,31 @@ class ChangeDirectory(object):
+ def main(args):
+   build_dir = 'CONFIGURATION_BUILD_DIR=' + os.getcwd()
+ 
+-  sparkle_dir = os.path.join(
+-    os.path.dirname(os.path.realpath(__file__)),
+-    'src'
+-  )
++  sparkle_dir = os.path.dirname(os.path.realpath(__file__))
+ 
+-  with ChangeDirectory(sparkle_dir):
++  with ChangeDirectory(sparkle_dir), tempfile.TemporaryDirectory() as temp_dir:
+     for target in TARGETS:
+       command = [
+         'xcodebuild',
++        '-disableAutomaticPackageResolution',
+         '-target',
+         target,
+         '-configuration',
+         'Release',
+         build_dir,
++        'PROJECT_TEMP_DIR=' + temp_dir,
++        'SPARKLE_BUILD_UI_BITS=0',
++        'SPARKLE_BUILD_LEGACY_DSA_SUPPORT=0',
++        'SPARKLE_BUILD_LEGACY_SUUPDATER=0',
++        'GENERATE_APPCAST_BUILD_LEGACY_DSA_SUPPORT=0',
++        'SPARKLE_BUILD_LEGACY_DELTA_SUPPORT=0',
++        'SPARKLE_BUILD_PACKAGE_SUPPORT=0',
++        'SPARKLE_COPY_LOCALIZATIONS=0',
+         'build',
+       ]
+ 
+-      with open(os.devnull, 'w') as dev_null:
+-        if subprocess.check_call(command, stdout=dev_null) != 0:
+-          return 1
++      if subprocess.check_call(command, stdout=subprocess.DEVNULL, stderr=sys.stderr) != 0:
++        return 1
+ 
+   return 0
+ 
