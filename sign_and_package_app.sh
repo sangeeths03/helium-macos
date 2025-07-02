@@ -22,6 +22,10 @@ if ! [ -z "${MACOS_CERTIFICATE_NAME-}" ]; then
     cp "$PROD_MACOS_SPECIAL_ENTITLEMENTS_PROFILE_PATH" "out/Default/Helium.app/Contents/embedded.provisionprofile"
   fi
 
+  if [ -d ./out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Frameworks/Sparkle.framework ]; then
+    codesign --sign "$MACOS_CERTIFICATE_NAME" --force --deep --timestamp --options restrict,library,runtime,kill ./out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Frameworks/Sparkle.framework
+  fi
+
   # Sign the binary
   codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier chrome_crashpad_handler --options=restrict,library,runtime,kill out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/chrome_crashpad_handler
   codesign --sign "$MACOS_CERTIFICATE_NAME" --force --timestamp --identifier net.imput.helium.helper --options restrict,library,runtime,kill --entitlements $_root_dir/entitlements/helper-entitlements.plist out/Default/Helium.app/Contents/Frameworks/Helium\ Framework.framework/Helpers/Helium\ Helper.app
