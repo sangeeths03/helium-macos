@@ -22,6 +22,11 @@ cp "$_main_repo/flags.gn" "$_src_dir/out/Default/args.gn"
 cat "$_root_dir/flags.macos.gn" >> "$_src_dir/out/Default/args.gn"
 echo 'cc_wrapper="env CCACHE_SLOPPINESS=time_macros ccache"' >> "$_src_dir/out/Default/args.gn"
 
+if ! [ -z "${PROD_MACOS_SPARKLE_ED_PUB_KEY-}" ]; then
+  echo 'enable_sparkle=true' >> "$_src_dir/out/Default/args.gn"
+  echo 'sparkle_ed_key="'"$PROD_MACOS_SPARKLE_ED_PUB_KEY"'"' >> "$_src_dir/out/Default/args.gn"
+fi
+
 cd "$_src_dir"
 
 ./tools/gn/bootstrap/bootstrap.py -o out/Default/gn --skip-generate-buildfiles
