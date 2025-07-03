@@ -57,18 +57,24 @@
  
  // Attempt to relaunch browser and install updates if any.
  void RelaunchBrowserUsingSparkle();
-@@ -80,6 +86,6 @@ std::u16string CurrentlyDownloadedVersio
+@@ -80,6 +86,12 @@ std::u16string CurrentlyDownloadedVersio
  // Check if current application has an update which is ready to be installed.
  bool ApplicationIsNearlyUpdated();
  
 -}  // namespace rebel
++// Replace the underlying profile tied to the updater with another one.
++void SwitchUnderlyingUpdaterProfile(Profile* profile);
++
++// Try to find a profile which allows updates.
++void TryAcquireProfilePtr();
++
 +}  // namespace helium
  
 -#endif  // REBEL_CHROME_BROWSER_MAC_SPARKLE_GLUE_H_
 +#endif  // CHROME_BROWSER_MAC_SPARKLE_GLUE_H_
 --- a/chrome/browser/mac/sparkle_glue.mm
 +++ b/chrome/browser/mac/sparkle_glue.mm
-@@ -1,8 +1,12 @@
+@@ -1,13 +1,18 @@
 +// Copyright 2025 The Helium Authors
 +// You can use, redistribute, and/or modify this source code under
 +// the terms of the GPL-3.0 license that can be found in the LICENSE file.
@@ -82,14 +88,22 @@
  
  #include "base/apple/foundation_util.h"
  #include "base/command_line.h"
-@@ -15,98 +19,48 @@
+ #include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/logging.h"
+ #include "base/sequence_checker.h"
+ #include "base/strings/escape.h"
+@@ -15,98 +20,59 @@
  #include "base/strings/utf_string_conversions.h"
  #include "base/task/thread_pool.h"
  #include "build/branding_buildflags.h"
++#include "chrome/browser/browser_process.h"
 +#include "chrome/browser/channel_selection.h"
 +#include "chrome/browser/lifetime/application_lifetime.h"
  #include "chrome/browser/obsolete_system/obsolete_system.h"
  #include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/profiles/profile_manager.h"
  #include "chrome/browser/ui/webui/help/version_updater.h"
  #include "chrome/grit/branded_strings.h"
  #include "chrome/grit/generated_resources.h"
@@ -175,26 +189,37 @@
  
  @implementation SparkleObserver {
 -  raw_ptr<Profile> profile_;
-+  Profile* profile_;
++  base::WeakPtr<Profile> profile_;
  }
  
 -@synthesize appcastFeedUrl = appcastFeedUrl_;
 +@synthesize invocationBlock = invocationBlock_;
 +@synthesize currentlyDownloadedVersion = currentlyDownloadedVersion_;
++
++- (BOOL)hasProfile {
++  return (bool)profile_;
++}
++
++- (void)updateProfile:(Profile*)profile {
++  if (!profile_ && profile) {
++    profile_ = profile->GetWeakPtr();
++  }
++}
  
  - (id)initWithProfile:(Profile*)profile {
    if ((self = [super init])) {
      DETACH_FROM_SEQUENCE(sequence_checker_);
- 
+-
 -    appcastFeedUrl_ = nil;
-     profile_ = profile;
+-    profile_ = profile;
 -
 -    [self registerAsSparkleObserver];
 -    [SUUpdater sharedUpdater].delegate = self;
++    [self updateProfile:profile];
    }
  
    return self;
-@@ -119,63 +73,55 @@ class VersionUpdaterForTests : public Ve
+@@ -119,63 +85,57 @@ class VersionUpdaterForTests : public Ve
  }
  
  - (void)dealloc {
@@ -262,6 +287,8 @@
 +}
 +
 +- (BOOL)shouldAccessUpdateService {
++  helium::TryAcquireProfilePtr();
++
 +  if (!profile_) {
 +    return NO;
 +  }
@@ -288,7 +315,7 @@
    if (error.code == SUNoUpdateError) {
      // Handled by notifications
      return;
-@@ -185,50 +131,22 @@ class VersionUpdaterForTests : public Ve
+@@ -185,50 +145,28 @@ class VersionUpdaterForTests : public Ve
  }
  
  // Delegated method. Return the appcast URL for the installed channel.
@@ -298,18 +325,22 @@
 -  }
 -
 -  std::string update_url = rebel::GetChannelUpdateURL(profile_->GetPrefs());
--
++- (NSString*)feedURLStringForUpdater:(SPUUpdater*)updater {
++  helium::TryAcquireProfilePtr();
+ 
 -  self.appcastFeedUrl =
 -      [NSString stringWithCString:update_url.c_str()
 -                         encoding:[NSString defaultCStringEncoding]];
 -  return self.appcastFeedUrl;
 -}
--
++  if (!profile_) {
++    return @"";
++  }
+ 
 -// Delegated method. Override the version comparator to check if the user has
 -// decided to switch channels.
 -- (id<SUVersionComparison>)versionComparatorForUpdater:(SUUpdater*)updater {
 -  return [[ChannelRespectingVersionComparator alloc] initWithProfile:profile_];
-+- (NSString*)feedURLStringForUpdater:(SPUUpdater*)updater {
 +  return base::SysUTF8ToNSString(
 +    helium::GetBrowserUpdateURL(*profile_->GetPrefs()).spec());
  }
@@ -351,7 +382,7 @@
  }
  
  - (void)updateStatus:(VersionUpdater::Status)status
-@@ -241,47 +159,67 @@ class VersionUpdaterForTests : public Ve
+@@ -241,47 +179,67 @@ class VersionUpdaterForTests : public Ve
  
  std::unique_ptr<VersionUpdater> VersionUpdater::Create(
      content::WebContents* web_contents) {
@@ -430,7 +461,7 @@
        // When updater already has update, don't interrupt it by new check,
        // instead suggest user to "Relaunch" browser.
        UpdateStatus(NEARLY_UPDATED, nil);
-@@ -325,7 +263,7 @@ void VersionUpdaterSparkle::UpdateStatus
+@@ -325,7 +283,7 @@ void VersionUpdaterSparkle::UpdateStatus
    // below the error in a <pre> block. Don't bother displaying detail messages
    // on a success/in-progress/indeterminate status.
    if (!error_messages.empty()) {
@@ -439,7 +470,7 @@
  
      if (status == FAILED) {
        if (!message.empty()) {
-@@ -342,56 +280,71 @@ void VersionUpdaterSparkle::UpdateStatus
+@@ -342,56 +300,95 @@ void VersionUpdaterSparkle::UpdateStatus
    status_callback_.Run(status, 0, false, false, std::string(), 0, message);
  }
  
@@ -525,6 +556,30 @@
  
 -  return updater.isNearlyUpdated;
 +  return observer.invocationBlock;
++}
++
++void SwitchUnderlyingUpdaterProfile(Profile* profile) {
++  SparkleObserver* observer = VersionUpdaterSparkle::sparkle_observer_;
++  if (!observer || !profile || observer.hasProfile) {
++    return;
++  }
++
++  [observer updateProfile:profile];
++}
++
++void TryAcquireProfilePtr() {
++  SparkleObserver* observer = VersionUpdaterSparkle::sparkle_observer_;
++  if (observer.hasProfile) {
++    return;
++  }
++
++  ProfileManager* profile_manager = g_browser_process->profile_manager();
++  for (auto* profile : profile_manager->GetLoadedProfiles()) {
++    if (helium::ShouldAccessUpdateService(*profile->GetPrefs())) {
++      SwitchUnderlyingUpdaterProfile(profile);
++      return;
++    }
++  }
  }
  
 -}  // namespace rebel
