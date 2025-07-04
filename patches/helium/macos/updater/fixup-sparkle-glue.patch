@@ -461,16 +461,30 @@
        // When updater already has update, don't interrupt it by new check,
        // instead suggest user to "Relaunch" browser.
        UpdateStatus(NEARLY_UPDATED, nil);
-@@ -325,7 +283,7 @@ void VersionUpdaterSparkle::UpdateStatus
-   // below the error in a <pre> block. Don't bother displaying detail messages
+@@ -322,76 +280,108 @@ void VersionUpdaterSparkle::UpdateStatus
+   std::u16string message;
+ 
+   // If we have an error to display, include the detail messages
+-  // below the error in a <pre> block. Don't bother displaying detail messages
++  // below the error. Don't bother displaying detail messages
    // on a success/in-progress/indeterminate status.
    if (!error_messages.empty()) {
 -    VLOG(1) << "Update error messages: " << error_messages;
 +    LOG(ERROR) << "Update error messages: " << error_messages;
  
      if (status == FAILED) {
-       if (!message.empty()) {
-@@ -342,56 +300,95 @@ void VersionUpdaterSparkle::UpdateStatus
+-      if (!message.empty()) {
+-        message += base::UTF8ToUTF16(std::string("<br/><br/>"));
+-      }
+-
+-      message += l10n_util::GetStringUTF16(IDS_UPGRADE_ERROR_DETAILS);
+-      message += base::UTF8ToUTF16(std::string("<br/><pre>"));
+-      message += base::UTF8ToUTF16(base::EscapeForHTML(error_messages));
+-      message += base::UTF8ToUTF16(std::string("</pre>"));
++      message = base::UTF8ToUTF16(base::EscapeForHTML(error_messages));
+     }
+   }
+ 
    status_callback_.Run(status, 0, false, false, std::string(), 0, message);
  }
  
