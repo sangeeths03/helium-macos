@@ -24,3 +24,4 @@ helium/macos/clean-main-menu.patch
 extra/rebel/macos/sparkle-integration.patch
 helium/macos/updater/fixup-sparkle-glue.patch
 helium/macos/updater/sparkle2-integration.patch
+helium/macos/updater/disable-default-updater.patch

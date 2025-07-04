@@ -1,0 +1,12 @@
+--- a/chrome/browser/ui/webui/help/version_updater_mac.mm
++++ b/chrome/browser/ui/webui/help/version_updater_mac.mm
+@@ -118,6 +118,9 @@ class VersionUpdaterMac : public Version
+   // VersionUpdater implementation.
+   void CheckForUpdate(StatusCallback status_callback,
+                       PromoteCallback promote_callback) override {
++    status_callback.Run(VersionUpdater::Status::DISABLED, 0, false, false, "", 0, u"");
++    return;
++
+     EnsureUpdater(
+         base::BindOnce(
+             [](PromoteCallback prompt) {
