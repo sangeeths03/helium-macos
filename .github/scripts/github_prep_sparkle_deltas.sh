@@ -1,6 +1,7 @@
 #!/bin/bash
 set -ex
 
+pip3 install requests --break-system-packages
 brew install sparkle
 xattr -cr /opt/homebrew/Caskroom/sparkle/*/bin/BinaryDelta
 export PATH="$(echo /opt/homebrew/Caskroom/sparkle/*/bin):$PATH"
