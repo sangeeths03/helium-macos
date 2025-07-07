@@ -485,3 +485,30 @@
    }
  
    if (is_android || is_mac || is_win || is_chromeos) {
+--- a/third_party/sparkle/Sparkle/SPUAutomaticUpdateDriver.m
++++ b/third_party/sparkle/Sparkle/SPUAutomaticUpdateDriver.m
+@@ -144,4 +144,24 @@
+     [_coreDriver abortUpdateAndShowNextUpdateImmediately:showNextUpdateImmediately error:error];
+ }
+ 
++- (void)downloadDriverDidReceiveExpectedContentLength:(uint64_t)expectedContentLength
++{
++    [_userDriver showDownloadDidReceiveExpectedContentLength:expectedContentLength];
++}
++
++- (void)downloadDriverDidReceiveDataOfLength:(uint64_t)length
++{
++    [_userDriver showDownloadDidReceiveDataOfLength:length];
++}
++
++- (void)coreDriverDidStartExtractingUpdate
++{
++    [_userDriver showDownloadDidStartExtractingUpdate];
++}
++
++- (void)installerDidExtractUpdateWithProgress:(double)progress
++{
++    [_userDriver showExtractionReceivedProgress:progress];
++}
++
+ @end

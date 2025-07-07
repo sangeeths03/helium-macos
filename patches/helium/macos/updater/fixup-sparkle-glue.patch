@@ -16,7 +16,7 @@
  
  #if defined(__OBJC__)
  
-@@ -15,6 +19,7 @@
+@@ -15,18 +19,20 @@
  #include "base/compiler_specific.h"
  #include "base/memory/weak_ptr.h"
  #include "chrome/browser/ui/webui/help/version_updater.h"
@@ -24,7 +24,13 @@
  
  class Profile;
  
-@@ -27,6 +32,7 @@ using SparkleUpdaterCallbackList =
+ @class SparkleObserver;
+ 
+ using SparkleUpdaterCallbackList =
+-    base::RepeatingCallbackList<void(VersionUpdater::Status, NSString*)>;
++    base::RepeatingCallbackList<void(VersionUpdater::Status, int, NSString*)>;
+ 
+ // macOS Sparkle implementation of version update functionality, used by the
  // WebUI About/Help page and installed version poller.
  class VersionUpdaterSparkle : public VersionUpdater {
   public:
@@ -32,7 +38,7 @@
    ~VersionUpdaterSparkle() override;
  
    // VersionUpdater implementation.
-@@ -34,11 +40,11 @@ class VersionUpdaterSparkle : public Ver
+@@ -34,18 +40,18 @@ class VersionUpdaterSparkle : public Ver
                        PromoteCallback promote_callback) override;
    void PromoteUpdater() override {}
  
@@ -48,6 +54,15 @@
  
    VersionUpdaterSparkle(const VersionUpdaterSparkle&) = delete;
    VersionUpdaterSparkle& operator=(const VersionUpdaterSparkle&) = delete;
+ 
+   // Sparkle's statuses processor method.
+-  void UpdateStatus(Status status, NSString* error_string);
+-  void UpdateStatusOnUIThread(Status status, NSString* error_string);
++  void UpdateStatus(Status status, int progress, NSString* error_string);
++  void UpdateStatusOnUIThread(Status status, int progress, NSString* error_string);
+ 
+   // Callback used to communicate update status to the client.
+   StatusCallback status_callback_;
 @@ -62,7 +68,7 @@ class VersionUpdaterSparkle : public Ver
  #endif  // __OBJC__
  
@@ -94,7 +109,7 @@
  #include "base/logging.h"
  #include "base/sequence_checker.h"
  #include "base/strings/escape.h"
-@@ -15,98 +20,59 @@
+@@ -15,98 +20,62 @@
  #include "base/strings/utf_string_conversions.h"
  #include "base/task/thread_pool.h"
  #include "build/branding_buildflags.h"
@@ -166,10 +181,11 @@
 -  auto* comparator = [SUStandardVersionComparator defaultComparator];
 -  return [comparator compareVersion:versionA toVersion:versionB];
 -}
--
--@end
 +#include "third_party/sparkle/Sparkle/Sparkle.h"
 +#include "third_party/sparkle/Sparkle/SPUHeadlessUserDriver.h"
+ 
++@interface SparkleDriver : SPUHeadlessUserDriver {}
+ @end
  
  // SparkleObserver is a simple notification observer for Sparkle status.
 -@interface SparkleObserver : NSObject <SUUpdaterDelegate> {
@@ -190,16 +206,16 @@
  @implementation SparkleObserver {
 -  raw_ptr<Profile> profile_;
 +  base::WeakPtr<Profile> profile_;
- }
- 
--@synthesize appcastFeedUrl = appcastFeedUrl_;
++}
++
 +@synthesize invocationBlock = invocationBlock_;
 +@synthesize currentlyDownloadedVersion = currentlyDownloadedVersion_;
 +
 +- (BOOL)hasProfile {
 +  return (bool)profile_;
-+}
-+
+ }
+ 
+-@synthesize appcastFeedUrl = appcastFeedUrl_;
 +- (void)updateProfile:(Profile*)profile {
 +  if (!profile_ && profile) {
 +    profile_ = profile->GetWeakPtr();
@@ -219,7 +235,7 @@
    }
  
    return self;
-@@ -119,63 +85,57 @@ class VersionUpdaterForTests : public Ve
+@@ -119,63 +88,57 @@ class VersionUpdaterForTests : public Ve
  }
  
  - (void)dealloc {
@@ -315,64 +331,38 @@
    if (error.code == SUNoUpdateError) {
      // Handled by notifications
      return;
-@@ -185,50 +145,28 @@ class VersionUpdaterForTests : public Ve
+@@ -185,110 +148,153 @@ class VersionUpdaterForTests : public Ve
  }
  
  // Delegated method. Return the appcast URL for the installed channel.
 -- (NSString*)feedURLStringForUpdater:(SUUpdater*)updater {
 -  if (self.appcastFeedUrl != nil) {
 -    return self.appcastFeedUrl;
--  }
--
--  std::string update_url = rebel::GetChannelUpdateURL(profile_->GetPrefs());
 +- (NSString*)feedURLStringForUpdater:(SPUUpdater*)updater {
 +  helium::TryAcquireProfilePtr();
++
++  if (!profile_) {
++    return @"";
+   }
+ 
+-  std::string update_url = rebel::GetChannelUpdateURL(profile_->GetPrefs());
++  return base::SysUTF8ToNSString(
++    helium::GetBrowserUpdateURL(*profile_->GetPrefs()).spec());
++}
  
 -  self.appcastFeedUrl =
 -      [NSString stringWithCString:update_url.c_str()
 -                         encoding:[NSString defaultCStringEncoding]];
 -  return self.appcastFeedUrl;
--}
-+  if (!profile_) {
-+    return @"";
-+  }
- 
--// Delegated method. Override the version comparator to check if the user has
--// decided to switch channels.
--- (id<SUVersionComparison>)versionComparatorForUpdater:(SUUpdater*)updater {
--  return [[ChannelRespectingVersionComparator alloc] initWithProfile:profile_];
-+  return base::SysUTF8ToNSString(
-+    helium::GetBrowserUpdateURL(*profile_->GetPrefs()).spec());
- }
- 
--// Delegated method. Don't provide the currently installed version in the update
--// request if the user has decided to switch channels.
--- (BOOL)updateRequestShouldIncludeVersion:(SUUpdater*)updater {
--  return !rebel::DidUserSelectNewChannel(profile_->GetPrefs());
 +- (void)updater:(SPUUpdater*)updater failedToDownloadUpdate:(NSError*)error {
 +  [self updateStatus:VersionUpdater::FAILED
 +        error_string:[error.localizedDescription copy]];
  }
  
--// Delegated method. When we don't provide the currently installed version in
--// the update request, we get a bunch of candidate updates. Choose the newest.
--- (SUAppcastItem*)bestValidUpdateInAppcast:(SUAppcast*)appcast
--                                forUpdater:(SUUpdater*)updater {
--  SUAppcastItem* item = nil;
--
--  if (rebel::DidUserSelectNewChannel(profile_->GetPrefs())) {
--    auto* comparator = [SUStandardVersionComparator defaultComparator];
--
--    for (SUAppcastItem* candidate in appcast.items) {
--      if (!item || ([comparator compareVersion:item.versionString
--                                     toVersion:candidate.versionString] ==
--                    NSOrderedAscending)) {
--        item = candidate;
--      }
--    }
--  }
--
--  return item;
+-// Delegated method. Override the version comparator to check if the user has
+-// decided to switch channels.
+-- (id<SUVersionComparison>)versionComparatorForUpdater:(SUUpdater*)updater {
+-  return [[ChannelRespectingVersionComparator alloc] initWithProfile:profile_];
 +- (nonnull NSSet<NSString *> *)allowedChannelsForUpdater:
 +    (nonnull SPUUpdater *)updater
 +{
@@ -381,8 +371,82 @@
 +    return [NSSet setWithObject:channel];
  }
  
- - (void)updateStatus:(VersionUpdater::Status)status
-@@ -241,47 +179,67 @@ class VersionUpdaterForTests : public Ve
+-// Delegated method. Don't provide the currently installed version in the update
+-// request if the user has decided to switch channels.
+-- (BOOL)updateRequestShouldIncludeVersion:(SUUpdater*)updater {
+-  return !rebel::DidUserSelectNewChannel(profile_->GetPrefs());
++- (void)updateStatus:(VersionUpdater::Status)status
++        error_string:(NSString*)error_string {
++  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++  status_callbacks_.Notify(status, 0, error_string);
+ }
+ 
+-// Delegated method. When we don't provide the currently installed version in
+-// the update request, we get a bunch of candidate updates. Choose the newest.
+-- (SUAppcastItem*)bestValidUpdateInAppcast:(SUAppcast*)appcast
+-                                forUpdater:(SUUpdater*)updater {
+-  SUAppcastItem* item = nil;
++- (void)updateProgress:(int)progress {
++  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
++  status_callbacks_.Notify(VersionUpdater::UPDATING, progress, @"");
++}
+ 
+-  if (rebel::DidUserSelectNewChannel(profile_->GetPrefs())) {
+-    auto* comparator = [SUStandardVersionComparator defaultComparator];
++@end  // @implementation SparkleObserver
+ 
+-    for (SUAppcastItem* candidate in appcast.items) {
+-      if (!item || ([comparator compareVersion:item.versionString
+-                                     toVersion:candidate.versionString] ==
+-                    NSOrderedAscending)) {
+-        item = candidate;
+-      }
+-    }
++@implementation SparkleDriver {
++  SparkleObserver* observer_;
++  uint64_t content_length_;
++  uint64_t downloaded_length_;
++}
++
++- (id)initWithObserver:(SparkleObserver*)observer {
++  if ((self = [super init])) {
++    observer_ = observer;
++    content_length_ = -1;
++    downloaded_length_ = -0;
+   }
+ 
+-  return item;
++  return self;
+ }
+ 
+-- (void)updateStatus:(VersionUpdater::Status)status
+-        error_string:(NSString*)error_string {
+-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  status_callbacks_.Notify(status, error_string);
++- (void)showDownloadDidReceiveExpectedContentLength:(uint64_t)expectedContentLength {
++  content_length_ = expectedContentLength;
+ }
+ 
+-@end  // @implementation SparkleObserver
++- (void)showDownloadDidReceiveDataOfLength:(uint64_t)length {
++  downloaded_length_ += length;
++
++  if (content_length_ > 0) {
++    double progress = ((double)downloaded_length_ / content_length_) * 100;
++    [observer_ updateProgress:progress / 2];
++  }
++}
++
++- (void)showDownloadDidStartExtractingUpdate {
++  [observer_ updateProgress:50];
++}
++
++- (void)showExtractionReceivedProgress:(double)progress {
++  int progress_ = 50 + (progress * 100) / 2;
++  [observer_ updateProgress:progress_];
++}
++
++@end  // @implementation SparkleDriver
  
  std::unique_ptr<VersionUpdater> VersionUpdater::Create(
      content::WebContents* web_contents) {
@@ -415,13 +479,13 @@
    // Ensure the Sparkle observer is only created once because there is only a
    // single Sparkle instance. We do not want to reset Sparkle's delegate, etc.
    static SparkleObserver* sparkle_observer = nil;
-+  static SPUHeadlessUserDriver* sparkle_driver = nil;
++  static SparkleDriver* sparkle_driver = nil;
    static dispatch_once_t token;
 +  static NSBundle* hostBundle = [NSBundle mainBundle];
  
    dispatch_once(&token, ^{
-+    sparkle_driver = [[SPUHeadlessUserDriver alloc] init];
      sparkle_observer = [[SparkleObserver alloc] initWithProfile:profile];
++    sparkle_driver = [[SparkleDriver alloc] initWithObserver:sparkle_observer];
 +
 +    VersionUpdaterSparkle::sparkle_observer_ = sparkle_observer;
 +    VersionUpdaterSparkle::sparkle_updater_ = [[SPUUpdater alloc]
@@ -460,8 +524,35 @@
 +    if (observer.invocationBlock || observer.currentlyDownloadedVersion) {
        // When updater already has update, don't interrupt it by new check,
        // instead suggest user to "Relaunch" browser.
-       UpdateStatus(NEARLY_UPDATED, nil);
-@@ -322,76 +280,108 @@ void VersionUpdaterSparkle::UpdateStatus
+-      UpdateStatus(NEARLY_UPDATED, nil);
++      UpdateStatus(NEARLY_UPDATED, 0, nil);
+     } else {
+       // Set initial status to CHECKING, callback will advance that status as
+       // progress of updates continue.
+-      UpdateStatus(CHECKING, nil);
++      UpdateStatus(CHECKING, 0, nil);
+       // Launch a new update check, even if one was already completed, because
+       // a new update may be available or a new update may have been installed
+       // in the background since the last time the Help page was displayed.
+@@ -303,14 +309,16 @@ void VersionUpdaterSparkle::CheckForUpda
+ }
+ 
+ void VersionUpdaterSparkle::UpdateStatus(Status status,
++                                         int progress,
+                                          NSString* error_string) {
+   content::GetUIThreadTaskRunner({})->PostTask(
+       FROM_HERE,
+       base::BindOnce(&VersionUpdaterSparkle::UpdateStatusOnUIThread,
+-                     weak_ptr_factory_.GetWeakPtr(), status, error_string));
++                     weak_ptr_factory_.GetWeakPtr(), status, progress, error_string));
+ }
+ 
+ void VersionUpdaterSparkle::UpdateStatusOnUIThread(Status status,
++                                                   int progress,
+                                                    NSString* error_string) {
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+   if (status_callback_.is_null()) {
+@@ -322,76 +330,108 @@ void VersionUpdaterSparkle::UpdateStatus
    std::u16string message;
  
    // If we have an error to display, include the detail messages
@@ -485,7 +576,8 @@
      }
    }
  
-   status_callback_.Run(status, 0, false, false, std::string(), 0, message);
+-  status_callback_.Run(status, 0, false, false, std::string(), 0, message);
++  status_callback_.Run(status, progress, false, false, std::string(), 0, message);
  }
  
 -namespace rebel {
