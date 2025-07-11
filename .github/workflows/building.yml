@@ -1,72 +1,138 @@
-name: Build macOS binaries of Helium
-on:
-  workflow_dispatch:
+name: Building macOS binaries of Helium
+
+defaults:
+  run:
+    shell: bash
 
 permissions:
   contents: write
 
-jobs:
-  build:
-    name: Build macOS binaries of Helium
-    strategy:
-      matrix:
-        arch: [arm64, x86_64]
-      fail-fast: true
-      max-parallel: 2
-    uses: ./.github/workflows/building.yml
-    secrets: inherit
-    with:
-      arch: ${{ matrix.arch }}
-      os: macos-15
+on:
+  workflow_call:
+    inputs:
+      arch:
+        required: true
+        type: string
+      os:
+        required: true
+        type: string
 
-  release:
-    needs: build
-    name: Release macOS binaries of Helium
-    runs-on: macos-latest
+jobs:
+  retrieve-resources:
+    name: Retrieve resources required for building
+    runs-on: ${{ inputs.os }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
         with:
           submodules: true
-      - name: Copy GitHub specific scripts to git-root folder
-        run: cp -va ./.github/scripts/ ./
-      - name: Disable Spotlight
-        run: sudo mdutil -a -i off
-      - name: Install coreutils
-        run: brew install coreutils
-      - name: Prepare release
-        id: bake
-        run: ./github_prepare_release.sh | tee -a github_actions_release.log
-      - name: Get built x86-64 binary
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ steps.bake.outputs.x64_file_name }}
-      - name: Get built arm64 binary
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ steps.bake.outputs.arm64_file_name }}
-      - name: List files
+      - uses: ./.github/actions/prepare-environment
+      - name: Download and unpack required resources
+        run: ./github_fetch_resources.sh ${{ inputs.arch }} | tee -a github_actions_retrieve_resources.log
+      - name: List resources
         run: ls -la
-      - name: Generate release note
-        run: ./github_generate_release_note.sh | tee -a github_actions_release.log
-      - name: List deltas
-        id: list_deltas
-        run: |
-          {
-            echo 'deltas<<EOF'
-            find ./release_asset/ -name '*.delta'
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-      - name: Release Helium binaries
-        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
+      - name: Archive resources
+        run: ./github_pack_resources.sh | tee -a github_actions_retrieve_resources.log
+      - name: Upload resources
+        uses: actions/upload-artifact@v4
         with:
-          body_path: ./github_release_note.md
-          draft: false
-          prerelease: true
-          files: |
-            ./release_asset/${{ steps.bake.outputs.arm64_file_name }}
-            ./release_asset/${{ steps.bake.outputs.x64_file_name }}
-            ${{ steps.list_deltas.outputs.deltas }}
-          name: ${{ steps.bake.outputs.release_name }}
-          tag_name: ${{ steps.bake.outputs.release_tag_version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          name: helium_macos_resources_${{ inputs.arch }}
+          path: upload_build_resources/
+
+  build_job_01:
+    needs: retrieve-resources
+    uses: ./.github/workflows/build-init.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
+
+  build_job_02:
+    needs: build_job_01
+    if: ${{needs.build_job_01.outputs.status == 'running'}}
+    uses: ./.github/workflows/build-step.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
+
+  build_job_03:
+    needs: build_job_02
+    if: ${{needs.build_job_02.outputs.status == 'running'}}
+    uses: ./.github/workflows/build-step.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
+
+  build_job_04:
+    needs: build_job_03
+    if: ${{needs.build_job_03.outputs.status == 'running'}}
+    uses: ./.github/workflows/build-step.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
+
+  build_job_05:
+    needs: build_job_04
+    if: ${{needs.build_job_04.outputs.status == 'running'}}
+    uses: ./.github/workflows/build-step.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
+
+  build_job_06:
+    needs: build_job_05
+    if: ${{needs.build_job_05.outputs.status == 'running'}}
+    uses: ./.github/workflows/build-step.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
+
+  build_job_07:
+    needs: build_job_06
+    if: ${{needs.build_job_06.outputs.status == 'running'}}
+    uses: ./.github/workflows/build-step.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
+
+  build_job_08:
+    needs: build_job_07
+    if: ${{needs.build_job_07.outputs.status == 'running'}}
+    uses: ./.github/workflows/build-step.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
+
+  build_job_09:
+    needs: build_job_08
+    if: ${{needs.build_job_08.outputs.status == 'running'}}
+    uses: ./.github/workflows/build-step.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      arch: ${{ inputs.arch }}
+      os: ${{ inputs.os }}
